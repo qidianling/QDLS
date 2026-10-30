@@ -11,7 +11,7 @@
   },
   "default_voice": {
     "type": "string",
-    "description": "默认音色 id，留空则用网关默认",
+    "description": "默认音色 id；留空则跟随 QDLS 控制台当前音色（推荐）",
     "default": ""
   },
   "poll_interval": {

@@ -21,7 +21,7 @@
 ```yaml
 gateway_url: http://127.0.0.1:6767   # 跨机填隧道/Tailscale 地址
 token: <用配对码换到的 token>
-default_voice: taffy
+default_voice: "        # 留空 = 跟随控制台当前音色
 poll_interval: 3
 timeout: 300
 ```
