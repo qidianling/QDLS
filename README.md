@@ -1,7 +1,5 @@
 # QDLS · 本地 AI 翻唱引擎
 
-
-> 仓库：https://github.com/qidianling/QDLS
 > 把一首歌换成你指定的音色，只留人声、去伴奏，通过 QQ / AstrBot 直接发出去。
 > 全部推理跑在你自己的显卡上，不上传音频、不依赖别人的服务器。
 
@@ -42,6 +40,9 @@ QDLS 是一个「**本地翻唱工作站**」：
 
 > **AMD 显卡**：需要 WSL2 + ROCm，详见 [docs/amd-wsl-rocm.md](docs/amd-wsl-rocm.md)。
 > 安装向导检测到 AMD 卡时会禁用 CUDA 安装并给出该指引（ZLUDA 不推荐，见文档末节）。
+
+
+> 关闭窗口只是收进系统托盘，程序继续在后台跑；要彻底退出请右键托盘图标 → 「退出 QDLS」。
 
 ## 2. 运行环境（会自动处理）
 
@@ -100,7 +101,7 @@ QDLS-Setup/
 ### 3.2 命令行安装（可选）
 
 ```powershell
-git clone https://github.com/qidianling/QDLS.git QDLS
+git clone <this-repo> QDLS
 cd QDLS
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
@@ -366,7 +367,7 @@ QDLS is a **local, non-commercial** singing voice conversion workbench.
 - Default voice `taffy` is a placeholder to avoid copyright issues — bring your own licensed reference.
 
 ```powershell
-git clone https://github.com/qidianling/QDLS.git QDLS && cd QDLS
+git clone <repo> QDLS && cd QDLS
 powershell -ExecutionPolicy Bypass -File install.ps1
 # then double-click "QDLS" on the Desktop
 ```

@@ -1,4 +1,5 @@
-' QDLS launcher: one hidden process for the panel, one app-mode window for the UI.
+' QDLS launcher: one hidden process for the panel, one app-mode window for the UI,
+' plus a tray icon so closing the window keeps the console running in the background.
 Option Explicit
 
 Dim fso, sh, kitRoot, py, edge, i, candidates
@@ -48,3 +49,7 @@ Else
   sh.Run "http://127.0.0.1:6768/?v=3", 1, False
 End If
 
+' tray helper: closing the window only hides the console, it keeps running here
+Dim trayCmd
+trayCmd = "powershell -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & kitRoot & "\tools\tray.ps1"" -Kit """ & kitRoot & """"
+sh.Run trayCmd, 0, False

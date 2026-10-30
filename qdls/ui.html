@@ -411,6 +411,10 @@ body.dark .overlay{background:rgba(0,0,0,.55)}
           <button onclick="act('restart')" data-i18n="restartGateway">重启网关</button>
           <span class="muted" id="settingsMsg"></span>
         </div>
+        <div class="card" style="margin-top:16px">
+          <h3 data-i18n="trayTitle">托盘与退出</h3>
+          <p class="sub" data-i18n="traySub">关闭这个窗口不会退出程序，它会缩到系统托盘继续跑（AstrBot 照常可用）。要彻底退出，请右键托盘图标 → 「退出 QDLS」。</p>
+        </div>
       </section>
 
     </div>
@@ -441,7 +445,7 @@ const I18N={
   uploadRef:"新增音色",uploadRefSub:"建议使用唱声版：纯人声演唱 15~25 秒",voiceName:"音色名称",upload:"生成音色",
   uploadTip:"会自动分离人声并挑最稳的 20 秒；说话声也能用，但电音感更重。",songPh:"歌名或链接",
   paths:"路径",pathsSub:"修改后需要重启网关",repo:"SoulX-Singer 目录",pretrained:"模型目录",voices:"音色目录",work:"工作目录",
-  python:"Python 路径",remoteCfg:"云端接入",resetLink:"重置云端链路",remoteCfgSub:"可选：让远端 AstrBot 通过 SSH 隧道调用本机",enableRemote:"启用隧道",
+  python:"Python 路径",remoteCfg:"云端接入",resetLink:"重置云端链路",trayTitle:"托盘与退出",traySub:"关闭这个窗口不会退出程序，它会缩到系统托盘继续跑（AstrBot 照常可用）。要彻底退出，请右键托盘图标 → 「退出 QDLS」。",remoteCfgSub:"可选：让远端 AstrBot 通过 SSH 隧道调用本机",enableRemote:"启用隧道",
   host:"服务器",user:"用户",key:"SSH 私钥",rport:"远端端口",container:"容器名",ports:"端口",portsSub:"改完需重启面板",
   gwPort:"网关端口",panelPort:"面板端口",restartGateway:"重启网关",saved:"已保存",built:"已生成",running:"处理中…",
   done:"完成，可直接播放",failed:"失败",online:"在线",offline:"离线",idle:"空闲",busy:"处理中",err:"出错",
