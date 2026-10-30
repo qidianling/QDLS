@@ -209,3 +209,21 @@ mcp__qdls__qdls_status
 
 DSH 的会话协议里确实有 `mcpServers`，但那是 ACP 客户端（编辑器/IDE）给 Harness 传参用的。
 **在 Harness 自己的界面里**，官方路径就是 bundle + 插件管理，本文按这个来。
+
+
+## 云端链路卡住了？（AstrBot 场景）
+
+现象：面板「本机网关」是绿的，但远端连不上，且日志每 10 秒出现一次
+starting tunnel。
+
+原因几乎都是**服务端残留的 sshd 会话还占着 6767/6768**：连接异常断开时，
+本地 ssh 退了，远端那条 sshd 子会话没退，新隧道因为端口被占直接失败。
+
+处理：
+
+- 新版面板：**设置 → 云端接入 → 「重置云端链路」**，它会 SSH 到服务器，
+  只杀持有这两个端口的会话，然后立刻重建隧道；
+- 或者手动在服务器上执行 ss -lntp | grep 676 找到 pid 再 kill。
+
+另外服务端已加 ClientAliveInterval 30 / ClientAliveCountMax 3，
+死会话 90 秒内会自动回收，一般不会再卡住。

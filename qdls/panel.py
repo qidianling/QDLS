@@ -123,6 +123,44 @@ def start_gateway():
         stderr=subprocess.DEVNULL, creationflags=CREATE_NO_WINDOW | DETACHED)
 
 
+def _remote_ssh_base() -> list:
+    remote = settings.get("remote") or {}
+    key = settings.resolve(remote.get("key"))
+    return ["ssh", "-i", key, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=" + os.path.join(KIT_ROOT, "known_hosts"),
+            "-o", "ConnectTimeout=12", "-o", "LogLevel=ERROR",
+            "{0}@{1}".format(remote.get("user") or "root", remote.get("host"))]
+
+
+def reset_remote_ports() -> dict:
+    """Kill sshd sessions holding the forwarded ports, so a fresh tunnel can bind."""
+    remote = settings.get("remote") or {}
+    if not remote.get("enabled") or not remote.get("host"):
+        return {"ok": False, "error": "未启用云端接入"}
+    ports = remote.get("ports") or [int(remote.get("remote_port") or GW_PORT), PANEL_PORT]
+    plist = " ".join(str(int(p)) for p in ports)
+    checks = " ".join("127.0.0.1:" + str(int(p)) for p in ports)
+    sh = (
+        "for p in " + plist + "; do "
+        "pid=$(ss -lntp 2>/dev/null | grep \"127.0.0.1:$p \" | grep -o 'pid=[0-9]*' "
+        "| head -1 | cut -d= -f2); "
+        "if [ -n \"$pid\" ]; then echo kill:$p:$pid; kill -9 $pid 2>/dev/null; fi; done; "
+        "sleep 1; "
+        "left=$(ss -lnt | grep -E '(" + checks.replace(" ", "|") + ")'); "
+        "if [ -z \"$left\" ]; then echo free; else echo \"still:\" $left; fi"
+    )
+    try:
+        r = subprocess.run(_remote_ssh_base() + [sh], capture_output=True, text=True,
+                           timeout=30, creationflags=CREATE_NO_WINDOW)
+        out = (r.stdout or "") + (r.stderr or "")
+        killed = [ln for ln in out.splitlines() if ln.startswith("kill:")]
+        free = "free" in out.splitlines()
+        log_event("reset remote ports: {0} killed, free={1}".format(len(killed), free))
+        return {"ok": True, "killed": killed, "free": free, "raw": out.strip()[:400]}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)[:200]}
+
+
 def start_tunnel():
     remote = settings.get("remote", {}) or {}
     if not remote.get("enabled") or not remote.get("host") or not remote.get("key"):
@@ -805,6 +843,17 @@ class Handler(BaseHTTPRequestHandler):
                 start_gateway()
                 start_tunnel()
                 res = {"ok": True}
+            elif path == "/api/tunnel/reset":
+                res = reset_remote_ports()
+                if res.get("ok"):
+                    kill_pid(_state.get("tunnel_pid"))
+                    _state["tunnel_pid"] = None
+                    save_state()
+                    time.sleep(1)
+                    start_tunnel()
+                    _cache["remote"] = (0, None)
+                    time.sleep(4)
+                    res["remote"] = remote_status()
             elif path == "/api/tunnel":
                 kill_pid(_state.get("tunnel_pid"))
                 _state["tunnel_pid"] = None
