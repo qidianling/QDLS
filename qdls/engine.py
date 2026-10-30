@@ -32,6 +32,14 @@ def _locate_repo() -> str:
     cands.append(kit_settings.resolve(kit_settings.get("paths.repo", "./SoulX-Singer")))
     cands.append(os.path.join(KIT_ROOT, "SoulX-Singer"))
     cands.append(os.path.join(ROOT, "SoulX-Singer"))
+    # tolerate a checkout living next to the kit or in a sibling folder
+    here = KIT_ROOT
+    for _ in range(3):
+        here = os.path.dirname(here)
+        if not here or here == os.path.dirname(here):
+            break
+        cands.append(os.path.join(here, "SoulX-Singer"))
+        cands.append(os.path.join(here, "cover", "SoulX-Singer"))
     for c in cands:
         if c and os.path.isdir(os.path.join(c, "preprocess", "tools")):
             return c

@@ -39,8 +39,19 @@ if os.path.exists(_demucs_ckpt) and os.path.getsize(_demucs_ckpt) > 10_000_000:
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
-import engine  # noqa: E402
 import settings  # noqa: E402
+
+# SoulX-Singer resolves its frozen Whisper encoder at import time: it uses
+# WHISPER_MODEL_DIR when that directory exists, otherwise it falls back to the
+# HF repo id and tries to download. Point it at the bundled copy first.
+_pretrained = settings.resolve(settings.get("paths.pretrained", "./pretrained"))
+_whisper_dir = os.path.join(_pretrained, "whisper-base")
+if os.path.isdir(_whisper_dir):
+    os.environ["WHISPER_MODEL_DIR"] = _whisper_dir
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
+import engine  # noqa: E402
 import sources  # noqa: E402
 
 DEVICE = os.environ.get("COVER_DEVICE", "cuda")
