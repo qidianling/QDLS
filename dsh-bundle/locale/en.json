@@ -1,0 +1,6 @@
+{
+    "meta":  {
+                 "description":  "Connects the local QDLS engine so the agent can request covers (mcp__qdls__*).",
+                 "title":  "QDLS Singing Engine"
+             }
+}

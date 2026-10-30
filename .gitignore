@@ -1,0 +1,28 @@
+# runtime data
+__pycache__/
+*.pyc
+work/
+cache/
+hf/
+uploads/
+*.log
+panel_state.json
+known_hosts
+
+# models and engine (downloaded by the installer)
+pretrained/
+SoulX-Singer/
+runtime/
+
+# local config and credentials - never commit
+settings.json
+access.json
+qdls.token
+dsh-mcp-qdls.json
+
+# audio
+*.mp3
+*.wav
+*.flac
+*.m4a
+!voices/**/ref.wav

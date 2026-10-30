@@ -1,0 +1,15 @@
+﻿- insert:
+    - id: qdls-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: qdls
+        transport: stdio
+        command: '<PYTHON>/python.exe'
+        args:
+          - '<QDLS>/qdls_mcp.py'
+        env:
+          QDLS_URL: 'http://127.0.0.1:6768'
+          PYTHONUTF8: '1'
+          PYTHONIOENCODING: 'utf-8'
+        cwd: '<QDLS>'
+        failOnStartupError: true

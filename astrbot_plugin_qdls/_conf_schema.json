@@ -1,0 +1,32 @@
+{
+  "gateway_url": {
+    "type": "string",
+    "description": "QDLS API 地址（本机 http://127.0.0.1:6768；跨机用隧道/Tailscale 到面板端口）",
+    "default": "http://127.0.0.1:6768"
+  },
+  "token": {
+    "type": "string",
+    "description": "配对得到的 API Token（QDLS 控制台「接入」页生成）",
+    "default": ""
+  },
+  "default_voice": {
+    "type": "string",
+    "description": "默认音色 id，留空则用网关默认",
+    "default": ""
+  },
+  "poll_interval": {
+    "type": "int",
+    "description": "轮询间隔（秒）",
+    "default": 3
+  },
+  "timeout": {
+    "type": "int",
+    "description": "单首最长等待（秒）",
+    "default": 300
+  },
+  "send_seed_text": {
+    "type": "bool",
+    "description": "是否附带一句种子说明（默认关闭，避免刷屏）",
+    "default": false
+  }
+}

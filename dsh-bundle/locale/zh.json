@@ -1,0 +1,6 @@
+{
+    "meta":  {
+                 "description":  "把本地 QDLS 引擎接到 Harness：点歌、音色、状态（mcp__qdls__*）。",
+                 "title":  "QDLS 翻唱引擎"
+             }
+}

@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>QDLS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon.png">
+<link rel="apple-touch-icon" href="/icon.png">
+<style>
+:root{
+  --bg:#f5f7fb; --panel:#ffffff; --side:#ffffff; --line:#e8ecf5; --tx:#1f2733;
+  --dim:#7a8699; --accent:#4f7cff; --accent-soft:#eaf0ff; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+}
+body.dark{
+  --bg:#0f1115; --panel:#161a22; --side:#121620; --line:#242b38; --tx:#e6e8ee;
+  --dim:#8b93a7; --accent:#6aa9ff; --accent-soft:#1b2740; --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+.app{display:flex;min-height:100vh}
+.side{width:220px;flex:0 0 220px;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 10px 18px}
+.logo{width:30px;height:30px;border-radius:9px;object-fit:contain;background:transparent;padding:2px}
+.brand b{font-size:15px}
+.brand span{display:block;font-size:11px;color:var(--dim);font-weight:400}
+nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;color:var(--dim);cursor:pointer;font-size:13.5px;user-select:none}
+.nav-item:hover{background:var(--bg);color:var(--tx)}
+.nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.side-foot{margin-top:auto;display:flex;gap:8px;padding:10px 6px 0}
+.side-foot button{flex:1}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;padding:20px 28px 6px}
+.top h1{font-size:19px;margin:0}
+.top p{margin:2px 0 0;color:var(--dim);font-size:12.5px}
+.content{padding:10px 28px 48px;max-width:1120px;width:100%}
+.page{display:none;animation:fade .18s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 4px;font-size:14px}
+.card .sub{color:var(--dim);font-size:12px;margin:0 0 12px}
+.stat{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:0 0 9px}
+.dot.on{background:var(--ok)}
+.dot.mid{background:var(--warn)}
+button{font:inherit;background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{filter:brightness(1.06);color:#fff}
+button.danger:hover{border-color:var(--bad);color:var(--bad)}
+button.sm{padding:5px 11px;font-size:12.5px}
+input[type=text],input[type=number],select{font:inherit;background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--accent)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.row.tight{gap:8px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--dim);flex:1;min-width:160px}
+label.f b{color:var(--tx);font-weight:600;font-size:13px}
+.slider-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.slider-row b{font-size:13px}
+.slider-row span{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
+.switch{display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer}
+.switch input{width:38px;height:22px;appearance:none;background:#cbd5e1;border-radius:999px;position:relative;transition:.2s;cursor:pointer}
+body.dark .switch input{background:#334155}
+.switch input:checked{background:var(--accent)}
+.switch input:before{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
+.switch input:checked:before{left:19px}
+.hint{color:var(--dim);font-size:12px}
+.bar{height:6px;background:rgba(127,127,127,.16);border-radius:99px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .35s}
+.bar.hot i{background:var(--bad)}
+pre{background:#0d1117;color:#c9d1d9;border:1px solid var(--line);border-radius:12px;padding:14px;height:58vh;overflow:auto;font:12.5px/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap}
+audio{width:100%;margin-top:12px}
+.list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.item:hover{border-color:var(--accent)}
+.item .t{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muted{color:var(--dim);font-size:12px}
+.toast{position:fixed;right:24px;bottom:24px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:12px;padding:12px 16px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:none}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+.ring{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);animation:spin .9s linear infinite;display:inline-block;vertical-align:middle}
+.ring.lg{width:44px;height:44px;border-width:3.5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay{position:fixed;inset:0;background:rgba(15,17,21,.35);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:60}
+body.dark .overlay{background:rgba(0,0,0,.55)}
+.overlay.show{display:flex}
+.overlay .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 32px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:260px}
+.overlay .box b{font-size:14px}
+.overlay .box span{color:var(--dim);font-size:12.5px;text-align:center}
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hero .t{font-size:16px;font-weight:600;margin:0}
+@media(max-width:760px){.side{display:none}.content{padding:10px 16px 40px}.top{padding:16px}}
+</style></head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><img class="logo" src="/icon.png" alt="QDLS"><div><b>QDLS</b><span id="brandSub">本地翻唱引擎</span></div></div>
+    <nav>
+      <div class="nav-item active" data-page="home" onclick="go('home')"><span>◆</span><span data-i18n="navHome">首页</span></div>
+      <div class="nav-item" data-page="engine" onclick="go('engine')"><span>⚙</span><span data-i18n="navEngine">引擎</span></div>
+      <div class="nav-item" data-page="advanced" onclick="go('advanced')"><span>⚗</span><span data-i18n="navAdvanced">高级</span></div>
+      <div class="nav-item" data-page="voice" onclick="go('voice')"><span>◉</span><span data-i18n="navVoice">音色</span></div>
+      <div class="nav-item" data-page="song" onclick="go('song')"><span>♪</span><span data-i18n="navSong">点歌台</span></div>
+      <div class="nav-item" data-page="test" onclick="go('test')"><span>▷</span><span data-i18n="navTest">测试</span></div>
+      <div class="nav-item" data-page="access" onclick="go('access')"><span>⚿</span><span data-i18n="navAccess">接入</span></div>
+      <div class="nav-item" data-page="log" onclick="go('log')"><span>≡</span><span data-i18n="navLog">日志</span></div>
+      <div class="nav-item" data-page="settings" onclick="go('settings')"><span>⚒</span><span data-i18n="navSettings">设置</span></div>
+    </nav>
+    <div class="side-foot">
+      <button class="sm" onclick="toggleTheme()" id="themeBtn">☾</button>
+      <button class="sm" onclick="toggleLang()" id="langBtn">EN</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div><h1 id="pageTitle">首页</h1><p id="pageSub">运行状态与快捷操作</p></div>
+      <div class="row tight" id="topActions"></div>
+    </div>
+    <div class="content">
+
+      <!-- home -->
+      <section class="page active" id="page-home">
+        <div class="grid g4">
+          <div class="card"><div class="muted" data-i18n="gw">本机网关</div><div class="stat"><span id="gwDot" class="dot"></span><span id="gwTxt">—</span></div></div>
+          <div class="card"><div class="muted" data-i18n="remote">云端链路</div><div class="stat"><span id="rmDot" class="dot"></span><span id="rmTxt">—</span></div></div>
+          <div class="card"><div class="muted" data-i18n="job">处理状态</div><div class="stat"><span id="jobDot" class="dot"></span><span id="jobRing" class="ring" style="display:none"></span><span id="jobTxt">—</span></div><div class="muted" id="jobSub"></div></div>
+          <div class="card"><div class="muted" data-i18n="voice">当前音色</div><div class="stat" id="voiceTxt">—</div></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="hero">
+            <div><p class="t" data-i18n="quickSong">点一首歌</p><span class="muted" data-i18n="quickSongSub">歌名或链接，直接生成并试听</span></div>
+            <div class="row tight" style="flex:1;justify-content:flex-end">
+              <input type="text" id="homeSong" data-i18n-ph="songPh" placeholder="歌名或链接" style="max-width:360px">
+              <select id="homeVoice" style="width:190px"></select>
+              <button class="primary" onclick="quickSong()" id="bQuick" data-i18n="request">生成</button>
+            </div>
+          </div>
+          <audio id="homePlayer" controls style="display:none"></audio>
+          <div class="muted" id="homeMsg" style="margin-top:8px"></div>
+        </div>
+
+        <div class="grid g2" style="margin-top:16px">
+          <div class="card">
+            <h3 data-i18n="recent">最近生成</h3><p class="sub" data-i18n="recentSub">点一下即可回放</p>
+            <div class="list" id="recentList"><span class="muted" data-i18n="empty">暂无记录</span></div>
+          </div>
+          <div class="card">
+            <h3 data-i18n="hardware">硬件</h3><p class="sub" id="gpuName">—</p>
+            <div class="slider-row"><b>GPU</b><span id="gpuUtil">—</span></div><div class="bar" id="gpuBar"><i></i></div>
+            <div class="slider-row" style="margin-top:12px"><b data-i18n="vram">显存</b><span id="vramTxt">—</span></div><div class="bar" id="vramBar"><i></i></div>
+            <div class="slider-row" style="margin-top:12px"><b>CPU</b><span id="cpuTxt">—</span></div><div class="bar" id="cpuBar"><i></i></div>
+            <div class="slider-row" style="margin-top:12px"><b data-i18n="ram">内存</b><span id="ramTxt">—</span></div><div class="bar" id="ramBar"><i></i></div>
+            <div class="muted" id="hwSub" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="row">
+            <button class="primary" onclick="act('start')" data-i18n="start">启动</button>
+            <button onclick="act('restart')" data-i18n="restart">重启</button>
+            <button class="danger" onclick="act('stop')" data-i18n="stop">停止</button>
+            <button onclick="act('tunnel')" data-i18n="fixTunnel">修复隧道</button>
+            <span class="muted" id="svcMsg"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- engine -->
+      <section class="page" id="page-engine">
+        <div class="grid g2">
+          <div class="card">
+            <h3 data-i18n="sound">声音</h3><p class="sub" data-i18n="soundSub">每次生成立即生效</p>
+            <div class="slider-row"><b data-i18n="pitch">音调</b><span id="vPitch">0</span></div>
+            <input type="range" id="sPitch" min="-12" max="12" step="1">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="cfg">贴合度 cfg</b><span id="vCfg">2.5</span></div>
+            <input type="range" id="sCfg" min="1" max="5" step="0.1">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="steps">推理步数</b><span id="vSteps">40</span></div>
+            <input type="range" id="sSteps" min="10" max="60" step="1">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="lift">自动升调上限</b><span id="vLift">5</span></div>
+            <input type="range" id="sLift" min="0" max="12" step="1">
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="polish">后处理</h3><p class="sub" data-i18n="polishSub">降噪、齿音、削峰</p>
+            <div class="row" style="justify-content:space-between"><label class="switch"><input type="checkbox" id="cDenoise"><span data-i18n="denoise">降噪</span></label><span class="tag" id="vDenoise">1.0</span></div>
+            <input type="range" id="sDenoise" min="0" max="2" step="0.1" style="margin-top:8px">
+            <div class="row" style="justify-content:space-between;margin-top:16px"><label class="switch"><input type="checkbox" id="cPeak"><span data-i18n="peak">削峰</span></label><span class="tag" id="vPeak">-3</span></div>
+            <input type="range" id="sPeak" min="-8" max="0" step="0.5" style="margin-top:8px">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="deess">齿音压制</b><span id="vDeess">-3.5</span></div>
+            <input type="range" id="sDeess" min="-10" max="0" step="0.5">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="mix">辅音保留</b><span id="vMix">0.25</span></div>
+            <input type="range" id="sMix" min="0" max="0.6" step="0.05">
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="clip">片段</h3><p class="sub" data-i18n="clipSub">随机截取一段副歌</p>
+            <div class="row">
+              <label class="f"><span data-i18n="clipMin">最短（秒）</span><input type="number" id="nClipMin" min="5" max="120"></label>
+              <label class="f"><span data-i18n="clipMax">最长（秒）</span><input type="number" id="nClipMax" min="5" max="180"></label>
+            </div>
+            <div class="row" style="margin-top:18px">
+              <label class="switch"><input type="checkbox" id="cAcap"><span data-i18n="acap">清唱（只输出人声）</span></label>
+            </div>
+            <p class="muted" data-i18n="acapSub">关闭后会混回原曲伴奏</p>
+          </div>
+        </div>
+        <div class="row" style="margin-top:18px">
+          <button class="primary" onclick="saveEngine()" data-i18n="save">保存设置</button>
+          <span class="muted" id="engineMsg"></span>
+        </div>
+      </section>
+
+      <!-- voice -->
+      <section class="page" id="page-voice">
+        <div class="grid g2">
+          <div class="card">
+            <h3 data-i18n="currentVoice">当前音色</h3><p class="sub" data-i18n="currentVoiceSub">生成时默认使用</p>
+            <div class="stat" id="curVoice">—</div>
+            <div class="list" id="voiceList" style="margin-top:14px"></div>
+          </div>
+          <div class="card">
+            <h3 data-i18n="uploadRef">新增音色</h3><p class="sub" data-i18n="uploadRefSub">建议使用唱声版：纯人声演唱 15~25 秒</p>
+            <div class="row"><input type="text" id="refName" data-i18n-ph="voiceName" placeholder="音色名称"></div>
+            <div class="row" style="margin-top:10px"><input type="file" id="refFile" accept=".mp3,.wav,.flac,.m4a,.ogg,.opus"></div>
+            <div class="row" style="margin-top:12px"><button class="primary" onclick="uploadRef()" data-i18n="upload">生成音色</button><span class="muted" id="buildMsg"></span></div>
+            <p class="muted" style="margin-top:12px" data-i18n="uploadTip">会自动分离人声并挑最稳的 20 秒；说话声也能用，但电音感更重。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- song -->
+      <section class="page" id="page-song">
+        <div class="card">
+          <h3 data-i18n="songPage">点歌台</h3><p class="sub" data-i18n="songPageSub">输入歌名生成成品，可保存到本地</p>
+          <div class="row">
+            <input type="text" id="songInput" data-i18n-ph="songPh" placeholder="歌名或链接" style="flex:2;min-width:280px">
+            <select id="songVoice" style="flex:1;min-width:180px"></select>
+            <button class="primary" onclick="runSong()" data-i18n="request">生成</button>
+            <span class="muted" id="songMsg"></span>
+          </div>
+          <audio id="songPlayer" controls style="display:none"></audio>
+          <div class="row" style="margin-top:12px" id="songActions">
+            <button onclick="downloadSong(0)" id="bDownload" data-i18n="download">下载到本地</button>
+            <button onclick="openFolder()" data-i18n="openFolder">打开输出目录</button>
+            <span class="muted" data-i18n="downloadHint">MP3 会保存到浏览器下载目录</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3 data-i18n="recent">最近生成</h3>
+          <div class="list" id="songList"><span class="muted" data-i18n="empty">暂无记录</span></div>
+        </div>
+      </section>
+
+      <!-- test (preview only) -->
+      <section class="page" id="page-test">
+        <div class="card">
+          <h3 data-i18n="testTitle">测试（仅预览）</h3>
+          <p class="sub" data-i18n="testSub">用内置片段快速验证当前参数，不提供保存</p>
+          <div class="row">
+            <button class="primary" onclick="runTest()" data-i18n="testRun">生成预览</button>
+            <span class="muted" id="testMsg"></span>
+          </div>
+          <audio id="player" controls style="display:none"></audio>
+          <p class="muted" style="margin-top:12px" data-i18n="testOnly">此页面只用于试听，成品请在「点歌台」生成并下载。</p>
+        </div>
+      </section>
+
+      <!-- advanced -->
+      <section class="page" id="page-advanced">
+        <div class="grid g2">
+          <div class="card">
+            <h3 data-i18n="advSvc">SVC 原版参数</h3><p class="sub" data-i18n="advSvcSub">直接透传到 SoulX-Singer 推理</p>
+            <label class="switch"><input type="checkbox" id="aAutoShift"><span data-i18n="advAutoShift">自动移调（按参考音高）</span></label>
+            <label class="switch" style="margin-top:12px"><input type="checkbox" id="aFp16"><span data-i18n="advFp16">FP16 推理（省显存，需重建模型）</span></label>
+            <div class="row" style="margin-top:14px">
+              <label class="f"><span data-i18n="advSeed">随机种子</span><input type="number" id="aSeed"></label>
+              <label class="switch" style="margin-top:18px"><input type="checkbox" id="aRandomSeed"><span data-i18n="advRandomSeed">每次随机</span></label>
+            </div>
+            <label class="switch" style="margin-top:12px"><input type="checkbox" id="aFullSong"><span data-i18n="advFullSong">整首（不截取片段）</span></label>
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="advPipe">流程内部参数</h3><p class="sub" data-i18n="advPipeSub">影响稳定性与动态，改完立即生效</p>
+            <div class="slider-row"><b data-i18n="advLiftRatio">自适应升调阈值</b><span id="vLiftRatio">0.78</span></div>
+            <input type="range" id="aLiftRatio" min="0.5" max="1.0" step="0.01">
+            <label class="switch" style="margin-top:14px"><input type="checkbox" id="aRepair"><span data-i18n="advRepair">跳变修复</span></label>
+            <div class="slider-row" style="margin-top:12px"><b data-i18n="advJump">跳变阈值（半音）</b><span id="vJump">6</span></div>
+            <input type="range" id="aJump" min="3" max="12" step="1">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="advCompThr">压缩阈值 (dB)</b><span id="vCompThr">-26</span></div>
+            <input type="range" id="aCompThr" min="-40" max="-10" step="1">
+            <div class="slider-row" style="margin-top:14px"><b data-i18n="advCompRatio">压缩比例</b><span id="vCompRatio">4.5</span></div>
+            <input type="range" id="aCompRatio" min="1" max="8" step="0.5">
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="advGate">音域门限</h3><p class="sub" data-i18n="advGateSub">超出范围直接拒绝，避免崩坏</p>
+            <label class="switch"><input type="checkbox" id="aGate"><span data-i18n="advGateOn">启用门限</span></label>
+            <div class="row" style="margin-top:14px">
+              <label class="f"><span data-i18n="advGateP95">P95 上限 (Hz)</span><input type="number" id="aGateP95"></label>
+              <label class="f"><span data-i18n="advGateMax">最大音高 (Hz)</span><input type="number" id="aGateMax"></label>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:18px">
+          <button class="primary" onclick="saveAdvanced()" data-i18n="save">保存设置</button>
+          <span class="muted" id="advMsg"></span>
+        </div>
+      </section>
+
+      <section class="page" id="page-access">
+        <div class="grid g2">
+          <div class="card">
+            <h3 data-i18n="pairing">配对码</h3>
+            <p class="sub" data-i18n="pairingSub">32 位随机串，10 分钟内有效、只能用一次（换 token 用）</p>
+            <div class="row">
+              <input type="text" id="tokenName" placeholder="给这个 token 起个名字（如 DSH）" style="max-width:240px">
+              <button class="primary" onclick="newToken()" data-i18n="newToken">直接生成 Token</button>
+              <button onclick="genCode()" data-i18n="genCode">生成配对码</button>
+              <button onclick="dshCred()" data-i18n="dshCred">写入 DSH 凭据</button>
+              <span class="hint" id="codeMsg"></span>
+            </div>
+            <div id="codeBox" style="display:none;margin-top:14px">
+              <div style="font:600 15px/1.5 ui-monospace,Consolas,monospace;word-break:break-all;
+                          background:var(--accent-soft);border-radius:10px;padding:12px 14px" id="codeValue">—</div>
+              <div class="row" style="margin-top:8px">
+                <button class="sm" onclick="copyCode()" data-i18n="copy">复制</button>
+                <span class="hint" id="codeExpire"></span>
+              </div>
+            </div>
+            <div id="tokenBox" style="display:none;margin-top:14px">
+              <div class="hint" data-i18n="tokenOnce">只显示这一次，复制到插件配置里</div>
+              <div style="font:600 13px/1.5 ui-monospace,Consolas,monospace;word-break:break-all;
+                          background:var(--accent-soft);border-radius:10px;padding:12px 14px;margin-top:6px" id="tokenValue">—</div>
+              <button class="sm" style="margin-top:8px" onclick="copyToken()" data-i18n="copy">复制</button>
+            </div>
+            <p class="hint" style="margin-top:14px" data-i18n="pairingTip">
+              在 AstrBot 装 astrbot_plugin_qdls → 配置里填网关地址 + 这个 token
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="connectedBots">已接入</h3>
+            <p class="sub" data-i18n="connectedSub">用 token 调用过 API 的机器人</p>
+            <div class="list" id="botList"><span class="muted" data-i18n="empty">暂无记录</span></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3 data-i18n="tokens">API Token</h3>
+          <p class="sub" data-i18n="tokensSub">泄露了就撤销，插件那边换新 token 即可</p>
+          <div class="list" id="tokenList"><span class="muted" data-i18n="empty">暂无记录</span></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3 data-i18n="pluginHint">插件配置示例</h3>
+          <pre style="height:auto;background:rgba(0,0,0,.25)" id="cfgSample">—</pre>
+        </div>
+      </section>
+
+      <!-- log -->
+      <section class="page" id="page-log">
+        <div class="card"><pre id="log">…</pre></div>
+      </section>
+
+      <!-- settings -->
+      <section class="page" id="page-settings">
+        <div class="grid g2">
+          <div class="card">
+            <h3 data-i18n="paths">路径</h3><p class="sub" data-i18n="pathsSub">修改后需要重启网关</p>
+            <label class="f"><span data-i18n="repo">SoulX-Singer 目录</span><input type="text" id="pRepo"></label>
+            <label class="f" style="margin-top:10px"><span data-i18n="pretrained">模型目录</span><input type="text" id="pPretrained"></label>
+            <label class="f" style="margin-top:10px"><span data-i18n="voices">音色目录</span><input type="text" id="pVoices"></label>
+            <label class="f" style="margin-top:10px"><span data-i18n="work">工作目录</span><input type="text" id="pWork"></label>
+            <label class="f" style="margin-top:10px"><span data-i18n="python">Python 路径</span><input type="text" id="pPython"></label>
+          </div>
+          <div class="card">
+            <h3 data-i18n="remoteCfg">云端接入</h3><p class="sub" data-i18n="remoteCfgSub">可选：让远端 AstrBot 通过 SSH 隧道调用本机</p>
+            <label class="switch"><input type="checkbox" id="rEnabled"><span data-i18n="enableRemote">启用隧道</span></label>
+            <div class="row" style="margin-top:12px">
+              <label class="f"><span data-i18n="host">服务器</span><input type="text" id="rHost" placeholder="1.2.3.4"></label>
+              <label class="f"><span data-i18n="user">用户</span><input type="text" id="rUser" placeholder="root"></label>
+            </div>
+            <label class="f" style="margin-top:10px"><span data-i18n="key">SSH 私钥</span><input type="text" id="rKey" placeholder="C:/path/id_rsa"></label>
+            <div class="row" style="margin-top:10px">
+              <label class="f"><span data-i18n="rport">远端端口</span><input type="number" id="rPort"></label>
+              <label class="f"><span data-i18n="container">容器名</span><input type="text" id="rContainer"></label>
+            </div>
+          </div>
+          <div class="card">
+            <h3 data-i18n="ports">端口</h3><p class="sub" data-i18n="portsSub">改完需重启面板</p>
+            <div class="row">
+              <label class="f"><span data-i18n="gwPort">网关端口</span><input type="number" id="gPort"></label>
+              <label class="f"><span data-i18n="panelPort">面板端口</span><input type="number" id="pnPort"></label>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:18px">
+          <button class="primary" onclick="saveSettingsPage()" data-i18n="save">保存设置</button>
+          <button onclick="act('restart')" data-i18n="restartGateway">重启网关</button>
+          <span class="muted" id="settingsMsg"></span>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="overlay" id="busy">
+  <div class="box">
+    <div class="ring lg"></div>
+    <b id="busyTitle">处理中</b>
+    <span id="busyStage">正在加载模型…</span>
+    <div class="bar" style="width:100%;margin-top:4px"><i id="busyBar"></i></div>
+    <span id="busyTime">0:00</span>
+  </div>
+</div>
+
+<script>
+const I18N={
+ zh:{brand:"本地翻唱引擎",navHome:"首页",navEngine:"引擎",navVoice:"音色",navSong:"点歌台",navAdvanced:"高级",navTest:"测试",songPage:"点歌台",songPageSub:"输入歌名生成成品，可保存到本地",download:"下载到本地",openFolder:"打开输出目录",downloadHint:"MP3 会保存到浏览器下载目录",testTitle:"测试（仅预览）",testSub:"用内置片段快速验证当前参数，不提供保存",testRun:"生成预览",testOnly:"此页面只用于试听，成品请在「点歌台」生成并下载。",advSvc:"SVC 原版参数",advSvcSub:"直接透传到 SoulX-Singer 推理",advAutoShift:"自动移调（按参考音高）",advFp16:"FP16 推理（省显存，需重建模型）",advSeed:"随机种子",advRandomSeed:"每次随机",advFullSong:"整首（不截取片段）",advPipe:"流程内部参数",advPipeSub:"影响稳定性与动态，改完立即生效",advLiftRatio:"自适应升调阈值",advRepair:"跳变修复",advJump:"跳变阈值（半音）",advCompThr:"压缩阈值 (dB)",advCompRatio:"压缩比例",advGate:"音域门限",advGateSub:"超出范围直接拒绝，避免崩坏",advGateOn:"启用门限",advGateP95:"P95 上限 (Hz)",advGateMax:"最大音高 (Hz)",navLog:"日志",navSettings:"设置",navAccess:"接入",accessSub:"配对码、Token 与已接入机器人",pairing:"令牌",newToken:"直接生成 Token",dshCred:"写入 DSH 凭据",tokenOnce:"只显示这一次，复制到插件配置里",pairingSub:"32 位随机串，10 分钟内有效、只能用一次（换 token 用）",genCode:"生成配对码",copy:"复制",copied:"已复制",pairingTip:"在 AstrBot 装 astrbot_plugin_qdls → 配置里填网关地址 + 这个 token",connectedBots:"已接入",connectedSub:"用 token 调用过 API 的机器人",tokens:"API Token",tokensSub:"泄露了就撤销，插件那边换新 token 即可",pluginHint:"插件配置示例",revoke:"撤销",
+  tHome:"首页",sHome:"运行状态与快捷操作",tEngine:"引擎",sEngine:"音色与后处理参数",tVoice:"音色",sVoice:"参考音频管理",
+  tSong:"点歌台",sSong:"输入歌名或链接，生成后直接试听",tLog:"日志",sLog:"网关实时输出",tSettings:"设置",sSettings:"路径、云端接入与端口",
+  gw:"本机网关",remote:"云端链路",job:"处理状态",voice:"当前音色",start:"启动",restart:"重启",stop:"停止",fixTunnel:"修复隧道",
+  quickSong:"点一首歌",quickSongSub:"歌名或链接，直接生成并试听",request:"生成",recent:"最近生成",recentSub:"点一下即可回放",
+  empty:"暂无记录",hardware:"硬件",vram:"显存",ram:"内存",sound:"声音",soundSub:"每次生成立即生效",pitch:"音调（半音）",
+  cfg:"贴合度 cfg",steps:"推理步数",lift:"自动升调上限",polish:"后处理",polishSub:"降噪、齿音、削峰",denoise:"降噪",peak:"削峰",
+  deess:"齿音压制 (dB)",mix:"辅音保留",clip:"片段",clipSub:"随机截取一段副歌",clipMin:"最短（秒）",clipMax:"最长（秒）",
+  acap:"清唱（只输出人声）",acapSub:"关闭后会混回原曲伴奏",save:"保存设置",currentVoice:"当前音色",currentVoiceSub:"生成时默认使用",
+  uploadRef:"新增音色",uploadRefSub:"建议使用唱声版：纯人声演唱 15~25 秒",voiceName:"音色名称",upload:"生成音色",
+  uploadTip:"会自动分离人声并挑最稳的 20 秒；说话声也能用，但电音感更重。",songPh:"歌名或链接",
+  paths:"路径",pathsSub:"修改后需要重启网关",repo:"SoulX-Singer 目录",pretrained:"模型目录",voices:"音色目录",work:"工作目录",
+  python:"Python 路径",remoteCfg:"云端接入",remoteCfgSub:"可选：让远端 AstrBot 通过 SSH 隧道调用本机",enableRemote:"启用隧道",
+  host:"服务器",user:"用户",key:"SSH 私钥",rport:"远端端口",container:"容器名",ports:"端口",portsSub:"改完需重启面板",
+  gwPort:"网关端口",panelPort:"面板端口",restartGateway:"重启网关",saved:"已保存",built:"已生成",running:"处理中…",
+  done:"完成，可直接播放",failed:"失败",online:"在线",offline:"离线",idle:"空闲",busy:"处理中",err:"出错",
+  connected:"已连通",disconnected:"未连通",off:"未启用",setDefault:"设为默认",applied:"已切换"},
+ en:{brand:"local voice kit",navHome:"Home",navEngine:"Engine",navVoice:"Voices",navSong:"Song",navAdvanced:"Advanced",navTest:"Test",songPage:"Song request",songPageSub:"Type a song name, keep the mp3 locally",download:"Download",openFolder:"Open output folder",downloadHint:"saved to your browser download folder",testTitle:"Test (preview only)",testSub:"quick check of current settings, nothing is saved",testRun:"Generate preview",testOnly:"Preview only. Use Song request to produce a downloadable file.",advSvc:"Native SVC params",advSvcSub:"passed straight to SoulX-Singer",advAutoShift:"Auto transpose (match reference pitch)",advFp16:"FP16 inference (less VRAM, rebuilds model)",advSeed:"Seed",advRandomSeed:"random each run",advFullSong:"Whole song (no excerpt)",advPipe:"Pipeline internals",advPipeSub:"stability and dynamics, applied immediately",advLiftRatio:"Auto-lift threshold",advRepair:"Jump repair",advJump:"Jump threshold (semitone)",advCompThr:"Compressor threshold (dB)",advCompRatio:"Compressor ratio",advGate:"Range gate",advGateSub:"reject songs outside the comfort zone",advGateOn:"Enable gate",advGateP95:"P95 limit (Hz)",advGateMax:"Max pitch (Hz)",navLog:"Logs",navSettings:"Settings",navAccess:"Access",accessSub:"pairing codes, tokens and bots",pairing:"Tokens",newToken:"Issue token",dshCred:"Provision DSH",tokenOnce:"shown once - copy it into the client config",pairingSub:"32-char random string, one-time, valid for 10 minutes",genCode:"Generate code",copy:"Copy",copied:"Copied",pairingTip:"Install astrbot_plugin_qdls and paste the gateway URL + this token",connectedBots:"Connected bots",connectedSub:"bots that called the API",tokens:"API tokens",tokensSub:"revoke a leaked token and issue a new one",pluginHint:"Plugin config sample",revoke:"Revoke",
+  tHome:"Home",sHome:"Status and quick actions",tEngine:"Engine",sEngine:"Timbre and post-processing",tVoice:"Voices",sVoice:"Reference audio",
+  tSong:"Song request",sSong:"Type a song or URL, preview when done",tLog:"Logs",sLog:"Live gateway output",tSettings:"Settings",sSettings:"Paths, cloud link, ports",
+  gw:"Gateway",remote:"Cloud link",job:"Job",voice:"Voice",start:"Start",restart:"Restart",stop:"Stop",fixTunnel:"Fix tunnel",
+  quickSong:"Request a song",quickSongSub:"Name or URL, generate and listen",request:"Generate",recent:"Recent",recentSub:"Click to replay",
+  empty:"nothing yet",hardware:"Hardware",vram:"VRAM",ram:"RAM",sound:"Sound",soundSub:"applies to the next run",pitch:"Pitch (semitones)",
+  cfg:"Timbre cfg",steps:"Steps",lift:"Auto lift cap",polish:"Post-processing",polishSub:"denoise, de-ess, limiter",denoise:"Denoise",peak:"Peak limit",
+  deess:"De-ess (dB)",mix:"Consonant keep",clip:"Clip",clipSub:"random chorus window",clipMin:"min (s)",clipMax:"max (s)",
+  acap:"A cappella (vocals only)",acapSub:"turn off to mix the original backing",save:"Save",currentVoice:"Current voice",currentVoiceSub:"used by default",
+  uploadRef:"New voice",uploadRefSub:"A sung 15-25 s clip works best",voiceName:"Voice name",upload:"Build voice",
+  uploadTip:"Vocals are separated and the most stable 20 s kept. Speech works but sounds robotic.",songPh:"Song name or URL",
+  paths:"Paths",pathsSub:"restart the gateway after editing",repo:"SoulX-Singer folder",pretrained:"Models folder",voices:"Voices folder",work:"Work folder",
+  python:"Python path",remoteCfg:"Cloud link",remoteCfgSub:"optional: let a remote AstrBot call this machine over SSH",enableRemote:"Enable tunnel",
+  host:"Host",user:"User",key:"SSH key",rport:"Remote port",container:"Container",ports:"Ports",portsSub:"restart the panel after editing",
+  gwPort:"Gateway port",panelPort:"Panel port",restartGateway:"Restart gateway",saved:"saved",built:"created",running:"working…",
+  done:"done, click play",failed:"failed",online:"online",offline:"offline",idle:"idle",busy:"processing",err:"error",
+  connected:"connected",disconnected:"offline",off:"disabled",setDefault:"Set default",applied:"switched"}
+};
+let LANG='zh', S={}, FILLED=false, PIDS='';
+const $=id=>document.getElementById(id);
+const T=k=>I18N[LANG][k]||k;
+const PAGES={home:['tHome','sHome'],engine:['tEngine','sEngine'],advanced:['navAdvanced','advPipeSub'],voice:['tVoice','sVoice'],song:['tSong','sSong'],test:['testTitle','testSub'],access:['navAccess','accessSub'],log:['tLog','sLog'],settings:['tSettings','sSettings']};
+
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n'); if(I18N[LANG][k]) e.textContent=I18N[LANG][k];});
+  document.querySelectorAll('[data-i18n-ph]').forEach(e=>{const k=e.getAttribute('data-i18n-ph'); if(I18N[LANG][k]) e.placeholder=I18N[LANG][k];});
+  $('brandSub').textContent=T('brand');
+  $('langBtn').textContent = LANG==='zh' ? 'EN' : '中文';
+  $('themeBtn').textContent = document.body.classList.contains('dark') ? '☀' : '☾';
+  const p=document.querySelector('.page.active');
+  if(p) setTitle(p.id.replace('page-',''));
+}
+function setTitle(page){
+  const k=PAGES[page]||PAGES.home;
+  $('pageTitle').textContent=T(k[0]); $('pageSub').textContent=T(k[1]);
+}
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+page));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
+  setTitle(page);
+  if(page==='settings') loadSettingsPage();
+  if(page==='voice') renderVoices();
+  if(page==='access') loadAccess();
+}
+async function api(p,opt){const r=await fetch(p,opt);return r.json()}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+async function toggleTheme(){document.body.classList.toggle('dark');$('themeBtn').textContent=document.body.classList.contains('dark')?'☀':'☾';
+  await api('/api/pref',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:document.body.classList.contains('dark')?'dark':'light'})});}
+async function toggleLang(){LANG=LANG==='zh'?'en':'zh';applyI18n();
+  await api('/api/pref',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({language:LANG})});}
+async function act(a){const r=await api('/api/'+a,{method:'POST'});
+  $('svcMsg').textContent=(r&&r.ok===false)?(r.msg||T('failed')):'';
+  setTimeout(refresh,900);}
+function dot(id,val,mode){
+  const d=$(id+'Dot'),t=$(id+'Txt');
+  if(mode==='bool'){d.className='dot'+(val?' on':'');t.textContent=val?T('online'):T('offline');}
+  else if(val==='off'){d.className='dot';t.textContent=T('off');}
+  else{d.className='dot'+(val==='200'?' on':(val==='000'?'':' mid'));t.textContent=val==='200'?T('connected'):(val==='000'?T('disconnected'):val);}
+}
+function bar(id,pct,hot){const b=$(id);if(!b)return;b.className='bar'+(hot?' hot':'');b.firstElementChild.style.width=Math.max(0,Math.min(100,pct||0))+'%';}
+function renderVoices(){
+  const list=$('voiceList'); if(!list) return;
+  const vs=S.profiles||[];
+  list.innerHTML = vs.map(v=>`<div class="item"><span class="t">${v.name} <span class="muted">(${v.id})</span></span>
+    <span>${v.id===S.voice_id?'<span class="tag">'+T('voice')+'</span>':''}
+    <button class="sm" onclick="setVoice('${v.id}')">${T('setDefault')}</button></span></div>`).join('') || `<span class="muted">${T('empty')}</span>`;
+}
+async function setVoice(id){
+  const r=await api('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  if(r.ok){
+    const name=r.name||id;
+    S.voice=name; S.voice_id=r.id||id;
+    $('voiceTxt').textContent=name; $('curVoice').textContent=name;
+    document.querySelectorAll('select').forEach(sel=>{ if(sel.id==='homeVoice'||sel.id==='songVoice') sel.value=r.id||id; });
+    renderVoices();
+    toast(T('applied'));
+    setTimeout(refresh,600);
+  } else { toast(T('failed')); }
+}
+let BUSY={elapsed:0,eta:0,at:0,on:false};
+function fmtT(x){x=Math.max(0,Math.round(x));return Math.floor(x/60)+':'+String(x%60).padStart(2,'0');}
+function showBusy(stage){BUSY.on=true;$('busy').classList.add('show');if(stage)$('busyStage').textContent=stage;paintBusy();}
+function hideBusy(){BUSY.on=false;$('busy').classList.remove('show');}
+function setBusyTimes(el,eta){BUSY.elapsed=el||0;BUSY.eta=eta||0;BUSY.at=Date.now();paintBusy();}
+function paintBusy(){
+  if(!BUSY.on)return;
+  const dt=(Date.now()-BUSY.at)/1000;
+  const el=BUSY.elapsed+dt, eta=Math.max(0,BUSY.eta-dt);
+  $('busyTime').textContent=fmtT(el)+(eta>0?('  ·  预计剩余 '+fmtT(eta)):'  ·  即将完成');
+  const total=Math.max(1,el+eta);
+  $('busyBar').style.width=Math.min(99,el/total*100)+'%';
+}
+setInterval(paintBusy,1000);
+function renderHistory(list,href){
+  const vs=S.profiles||[];
+  const html=(list||[]).map(h=>`<div class="item"><span class="t">${h.song}</span>
+    <span class="row tight"><span class="muted">${h.time}</span>
+      <button class="sm" onclick="play(${h.i})">▶</button>
+      <button class="sm" onclick="downloadSong(${h.i})">⬇</button></span></div>`).join('');
+  ['recentList','songList'].forEach(id=>{const el=$(id);if(el)el.innerHTML=html||`<span class="muted">${T('empty')}</span>`;});
+}
+function play(i){const a=$('homePlayer').style.display='block'?$('homePlayer'):$('songPlayer');
+  const p=($('page-song').classList.contains('active')?$('songPlayer'):$('homePlayer'));
+  p.src='/api/song/audio?i='+i+'&t='+Date.now(); p.style.display='block'; p.play().catch(()=>{});}
+async function quickSong(){const song=$('homeSong').value.trim(); if(song){$('songInput').value=song; await runSong();}}
+async function downloadSong(i){
+  const a=document.createElement('a');
+  a.href='/api/song/audio?i='+(i||0)+'&dl=1&t='+Date.now();
+  a.download=''; document.body.appendChild(a); a.click(); a.remove();
+}
+async function openFolder(){ await api('/api/open_folder',{method:'POST'}); }
+function fillAdvanced(s){
+  $('aAutoShift').checked=!!s.auto_shift; $('aFp16').checked=!!s.fp16;
+  $('aSeed').value=s.seed; $('aRandomSeed').checked=!!s.random_seed; $('aFullSong').checked=!!s.full_song;
+  $('aLiftRatio').value=s.lift_ratio; $('vLiftRatio').textContent=s.lift_ratio;
+  $('aRepair').checked=!!s.repair_jumps; $('aJump').value=s.jump_semitones; $('vJump').textContent=s.jump_semitones;
+  $('aCompThr').value=s.comp_thr; $('vCompThr').textContent=s.comp_thr;
+  $('aCompRatio').value=s.comp_ratio; $('vCompRatio').textContent=s.comp_ratio;
+  $('aGate').checked=!!s.gate_enabled; $('aGateP95').value=s.gate_p95; $('aGateMax').value=s.gate_max;
+}
+async function saveAdvanced(){
+  const payload={auto_shift:$('aAutoShift').checked,fp16:$('aFp16').checked,
+    seed:+$('aSeed').value,random_seed:$('aRandomSeed').checked,full_song:$('aFullSong').checked,
+    lift_ratio:+$('aLiftRatio').value,repair_jumps:$('aRepair').checked,jump_semitones:+$('aJump').value,
+    comp_thr:+$('aCompThr').value,comp_ratio:+$('aCompRatio').value,
+    gate_enabled:$('aGate').checked,gate_p95:+$('aGateP95').value,gate_max:+$('aGateMax').value};
+  const r=await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  $('advMsg').textContent=r.ok?T('saved'):T('failed'); setTimeout(()=>$('advMsg').textContent='',1800);
+}
+async function runSong(){
+  const song=($('page-song').classList.contains('active')?$('songInput'):$('homeSong')).value.trim();
+  if(!song){return;}
+  const voice=($('page-song').classList.contains('active')?$('songVoice'):$('homeVoice')).value;
+  const msg=$('page-song').classList.contains('active')?$('songMsg'):$('homeMsg');
+  msg.textContent=T('running');
+  $('busyTitle').textContent=T('busy'); showBusy(song); setBusyTimes(0,0);
+  const r=await api('/api/song',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({song,voice})});
+  if(r&&r.ok===false){hideBusy();msg.textContent=r.msg||T('failed');return;}
+  const poll=async()=>{const s=await api('/api/song');
+    if(s.state==='running'){ if(s.busy&&s.stage){msg.textContent=s.stage;$('busyStage').textContent=s.stage;} else msg.textContent=T('running');
+      if(s.elapsed!=null) setBusyTimes(s.elapsed,s.eta||0); setTimeout(poll,1500); }
+    else if(s.state==='done'){ hideBusy(); msg.textContent=T('done');
+      const p=$('page-song').classList.contains('active')?$('songPlayer'):$('homePlayer');
+      p.src='/api/song/audio?i=0&t='+Date.now(); p.style.display='block'; p.play().catch(()=>{});
+      renderHistory(s.history); }
+    else { hideBusy(); msg.textContent=s.msg||T('failed'); } };
+  poll();
+}
+async function uploadRef(){
+  const f=$('refFile').files[0]; if(!f) return;
+  $('buildMsg').textContent=T('running');
+  const fd=new FormData(); fd.append('file',f); fd.append('name',$('refName').value||'');
+  await fetch('/api/voice_build',{method:'POST',body:fd});
+  const poll=async()=>{const r=await api('/api/voice_build');
+    if(r.state==='running'){$('buildMsg').textContent=T('running');setTimeout(poll,1500);}
+    else if(r.state==='done'){$('buildMsg').textContent=T('built')+': '+r.id;refresh();renderVoices();}
+    else{$('buildMsg').textContent=r.msg||T('failed');}};
+  poll();
+}
+function bindRange(id,vid,fmt){const el=$(id),v=$(vid);const upd=()=>{v.textContent=(fmt?fmt(el.value):el.value);};el.addEventListener('input',upd);upd();}
+function fillEngine(s){
+  $('sPitch').value=s.pitch_shift; $('vPitch').textContent=s.pitch_shift;
+  $('sCfg').value=s.cfg; $('vCfg').textContent=s.cfg;
+  $('sSteps').value=s.n_steps; $('vSteps').textContent=s.n_steps;
+  $('sLift').value=s.lift_max; $('vLift').textContent=s.lift_max;
+  $('sDeess').value=s.deess_db; $('vDeess').textContent=s.deess_db;
+  $('sMix').value=s.consonant_mix; $('vMix').textContent=s.consonant_mix;
+  $('nClipMin').value=s.clip_min; $('nClipMax').value=s.clip_max;
+  $('cDenoise').checked=!!s.denoise.enabled; $('sDenoise').value=s.denoise.strength; $('vDenoise').textContent=s.denoise.strength;
+  $('cPeak').checked=!!s.peak.enabled; $('sPeak').value=s.peak.ceiling_db; $('vPeak').textContent=s.peak.ceiling_db;
+  $('cAcap').checked=!!s.acappella;
+}
+function enginePayload(){
+  return {pitch_shift:+$('sPitch').value,cfg:+$('sCfg').value,n_steps:+$('sSteps').value,lift_max:+$('sLift').value,
+    deess_db:+$('sDeess').value,consonant_mix:+$('sMix').value,clip_min:+$('nClipMin').value,clip_max:+$('nClipMax').value,
+    denoise:{enabled:$('cDenoise').checked,strength:+$('sDenoise').value},
+    peak:{enabled:$('cPeak').checked,ceiling_db:+$('sPeak').value},acappella:$('cAcap').checked};
+}
+async function saveEngine(){const r=await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(enginePayload())});
+  $('engineMsg').textContent=r.ok?T('saved'):T('failed'); setTimeout(()=>$('engineMsg').textContent='',1600);}
+async function loadSettingsPage(){
+  const r=await api('/api/settings_full'); if(!r.ok) return; const s=r.settings;
+  $('pRepo').value=s.paths.repo; $('pPretrained').value=s.paths.pretrained; $('pVoices').value=s.paths.voices;
+  $('pWork').value=s.paths.work; $('pPython').value=s.paths.python||'';
+  $('rEnabled').checked=!!s.remote.enabled; $('rHost').value=s.remote.host; $('rUser').value=s.remote.user;
+  $('rKey').value=s.remote.key; $('rPort').value=s.remote.remote_port; $('rContainer').value=s.remote.container;
+  $('gPort').value=s.gateway.port; $('pnPort').value=s.panel.port;
+}
+async function saveSettingsPage(){
+  const payload={paths:{repo:$('pRepo').value,pretrained:$('pPretrained').value,voices:$('pVoices').value,work:$('pWork').value,python:$('pPython').value},
+    remote:{enabled:$('rEnabled').checked,host:$('rHost').value,user:$('rUser').value,key:$('rKey').value,
+      remote_port:+$('rPort').value,local_port:+$('rPort').value,container:$('rContainer').value},
+    gateway:{host:'127.0.0.1',port:+$('gPort').value},panel:{host:'127.0.0.1',port:+$('pnPort').value}};
+  const r=await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  $('settingsMsg').textContent=r.ok?T('saved'):T('failed'); setTimeout(()=>$('settingsMsg').textContent='',2200);
+}
+async function loadAccess(){
+  try{
+    const st = await api('/api/access/state');
+    const bots = (st.bots||[]);
+    $('botList').innerHTML = bots.length ? bots.map(b=>{
+      const seen = b.seen ? new Date(b.seen*1000).toLocaleTimeString() : '-';
+      return `<div class="item"><span class="t">${b.name||'AstrBot'} <span class="muted">${b.platform||''}</span></span>
+        <span class="muted">最后活动 ${seen}</span></div>`;
+    }).join('') : `<span class="muted">${T('empty')}</span>`;
+    const toks = (st.tokens||[]);
+    $('tokenList').innerHTML = toks.length ? toks.map(t=>{
+      const created = t.created ? new Date(t.created*1000).toLocaleString() : '-';
+      return `<div class="item"><span class="t">${t.name||'token'} <span class="muted">${t.id}</span></span>
+        <span class="row tight"><span class="muted">${created} · ${t.calls||0} 次</span>
+        <button class="sm" onclick="revokeToken('${t.id}')">${T('revoke')}</button></span></div>`;
+    }).join('') : `<span class="muted">${T('empty')}</span>`;
+    const url = location.origin.replace(':6768',':6767');
+    $('cfgSample').textContent =
+      '# AstrBot 插件 astrbot_plugin_qdls 配置\n' +
+      'gateway_url: ' + url + '\n' +
+      'token: ' + (toks.length ? '<在生成配对码时领取>' : '<先生成配对码>') + '\n' +
+      'default_voice: taffy';
+  }catch(e){}
+}
+let codeTimer=null;
+async function dshCred(){
+  const r = await api('/api/access/dsh_credential',{method:'POST'});
+  codeMsg.textContent = r.ok
+    ? ('已写入 ' + r.path + '（尾号 ' + r.token_tail + '）—— 重启 DSH 即可，无需填任何 key')
+    : '写入失败';
+  loadAccess();
+}
+async function newToken(){
+  const name = (tokenName.value || 'manual').trim();
+  const r = await api('/api/access/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  if(!r.token){codeMsg.textContent='生成失败';return;}
+  tokenBox.style.display='block';
+  tokenValue.textContent=r.token;
+  codeMsg.textContent='已生成，复制后填进客户端配置';
+  loadAccess();
+}
+async function copyToken(){
+  const t=tokenValue.textContent||'';
+  try{ await navigator.clipboard.writeText(t); toast(T('copied')); }
+  catch(e){ const r=document.createRange(); r.selectNode(tokenValue);
+    const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); toast(T('copied')); }
+}
+async function copyCode(){
+  const t = codeValue.textContent || '';
+  try { await navigator.clipboard.writeText(t); toast(T('copied')); }
+  catch(e){ const r=document.createRange(); r.selectNode(codeValue);
+    const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); toast(T('copied')); }
+}
+async function genCode(){
+  const r = await api('/api/access/code',{method:'POST'});
+  if(!r.code){$('codeMsg').textContent='生成失败';return;}
+  $('codeBox').style.display='block';
+  $('codeValue').textContent=r.code;
+  let left=r.expires_in||600;
+  const tick=()=>{
+    left-=1;
+    const m=Math.floor(left/60), s2=left%60;
+    $('codeExpire').textContent = left>0 ? ('剩余 '+m+':'+String(s2).padStart(2,'0')+' · 一次性') : '已过期，请重新生成';
+    if(left<=0){clearInterval(codeTimer);}
+  };
+  clearInterval(codeTimer); tick(); codeTimer=setInterval(tick,1000);
+  $('codeMsg').textContent='把这个码填进插件的配对输入框';
+  loadAccess();
+}
+async function revokeToken(id){
+  const r=await api('/api/access/revoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  toast(r.ok?T('saved'):T('failed'));
+  loadAccess();
+}
+async function refresh(){
+  try{
+    S=await api('/api/status');
+    dot('gw',S.gateway,'bool'); dot('rm',S.remote);
+    $('voiceTxt').textContent=S.voice||'—'; $('curVoice').textContent=S.voice||'—';
+    const jb=S.job||{}; const busy=!!jb.busy,err=!!jb.error;
+    $('jobDot').className='dot'+(err?'':(busy?' mid':' on'));
+    $('jobRing').style.display=busy?'inline-block':'none';
+    $('jobTxt').textContent=err?T('err'):(busy?T('busy'):T('idle'));
+    if(busy && $('busy').classList.contains('show')) $('busyStage').textContent=jb.stage||T('running');
+    const jt = jb.busy ? (' · 已用 '+fmtT(jb.elapsed||0)+(jb.eta?(' / 约剩 '+fmtT(jb.eta)):'')) : '';
+    $('jobSub').textContent=err?jb.error:((jb.job?'#'+jb.job.slice(0,6)+' ':'')+(jb.stage||'')+jt);
+    const g=S.hw.gpu;
+    if(g){$('gpuUtil').textContent=g.util+'%';bar('gpuBar',g.util,g.util>85);
+      $('gpuName').textContent=g.name||''; 
+      const vp=g.mem/g.mem_total*100; $('vramTxt').textContent=(g.mem/1024).toFixed(1)+' / '+(g.mem_total/1024).toFixed(1)+' GB';
+      bar('vramBar',vp,vp>88);}
+    if(S.hw.cpu!=null){$('cpuTxt').textContent=S.hw.cpu+'%';bar('cpuBar',S.hw.cpu,S.hw.cpu>85);}
+    const r=S.hw.ram; if(r){$('ramTxt').textContent=r.used+' / '+r.total+' GB';bar('ramBar',r.percent,r.percent>88);}
+    $('hwSub').textContent = (g? (g.temp+'°C'+(g.power?' · '+g.power+'W':'')) : '') + (S.hw.gw_rss!=null? ' · 进程 '+S.hw.gw_rss.toFixed(2)+' GB':'');
+    if(S.profiles){const ids=S.profiles.map(p=>p.id).join(',');
+      if(ids!==PIDS){PIDS=ids;
+        ['homeVoice','songVoice'].forEach(sid=>{const sel=$(sid); if(!sel)return; sel.innerHTML='';
+          (S.profiles||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;o.selected=(p.id===S.voice_id);sel.appendChild(o);});});
+        renderVoices();
+      }}
+    renderHistory((S.song_history||[]).slice(0,8));
+    const box=$('log'); if(box){box.textContent=(S.log||[]).join('\n');box.scrollTop=box.scrollHeight;}
+    if(!FILLED&&S.settings){FILLED=true;fillEngine(S.settings);fillAdvanced(S.settings);}
+  }catch(e){ $('gwTxt').textContent=T('offline'); }
+}
+(async()=>{
+  const s=await api('/api/status');
+  LANG=s.language||'zh';
+  if(s.theme==='dark')document.body.classList.add('dark');
+  applyI18n();
+  bindRange('sPitch','vPitch'); bindRange('sCfg','vCfg'); bindRange('sSteps','vSteps'); bindRange('sLift','vLift');
+  bindRange('sDeess','vDeess'); bindRange('sMix','vMix'); bindRange('sDenoise','vDenoise'); bindRange('sPeak','vPeak');
+  bindRange('aLiftRatio','vLiftRatio'); bindRange('aJump','vJump');
+  bindRange('aCompThr','vCompThr'); bindRange('aCompRatio','vCompRatio');
+  await refresh();
+  setInterval(refresh,2500);
+})();
+</script></body></html>

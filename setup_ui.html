@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><title>QDLS 安装</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/icon.png">
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--line:#e8ecf5;--tx:#1f2733;--dim:#7a8699;--accent:#4f7cff;--accent-soft:#eaf0ff;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b;--shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06)}
+body.dark{--bg:#0f1115;--panel:#161a22;--line:#242b38;--tx:#e6e8ee;--dim:#8b93a7;--accent:#6aa9ff;--accent-soft:#1b2740}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px}
+.win{width:min(880px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.head{display:flex;align-items:center;gap:14px;padding:22px 26px;border-bottom:1px solid var(--line)}
+.logo{width:40px;height:40px;border-radius:12px;object-fit:contain;padding:2px}
+h1{font-size:18px;margin:0}
+.sub{color:var(--dim);font-size:12.5px}
+.body{padding:24px 26px}
+.steps{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap}
+.step{flex:1;min-width:110px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--dim)}
+.step b{display:block;font-size:12.5px;color:var(--tx);font-weight:600}
+.step.on{border-color:var(--accent);background:var(--accent-soft)}
+.step.ok{border-color:var(--ok)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--dim);flex:1}
+input[type=text]{font:inherit;background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;width:100%}
+input:focus{border-color:var(--accent)}
+button{font:inherit;background:var(--panel);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px 16px;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{color:#fff;filter:brightness(1.05)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:6px}
+.chip{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip input{margin-top:3px}
+.chip b{display:block;font-size:13px}
+.chip span{color:var(--dim);font-size:12px}
+.path-preview{margin-top:10px;font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--dim);word-break:break-all;background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+.progress{margin-top:18px;display:none}
+.progress.show{display:block}
+.plabel{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim);margin-bottom:8px}
+.bar{height:10px;background:rgba(127,127,127,.18);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4f7cff,#6aa9ff);border-radius:99px;transition:width .25s}
+.ring{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);animation:spin .9s linear infinite;display:none;vertical-align:middle}
+.ring.show{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+pre{background:#0d1117;color:#c9d1d9;border-radius:12px;padding:12px;height:180px;overflow:auto;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;margin-top:14px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 26px;border-top:1px solid var(--line)}
+.hint{color:var(--dim);font-size:12px}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+</style></head><body>
+<div class="win">
+  <div class="head">
+    <img class="logo" src="/icon.png" alt="QDLS">
+    <div><h1>QDLS 安装向导</h1><div class="sub">本地 AI 翻唱引擎 · 非商业用途</div></div>
+    <div style="margin-left:auto"><span class="badge" id="pyver">…</span></div>
+  </div>
+  <div class="body">
+    <div class="steps">
+      <div class="step" id="s1"><b>1 位置</b>目录与组件</div>
+      <div class="step" id="s2"><b>2 Python</b>检测或内置下载</div>
+      <div class="step" id="s3"><b>3 依赖</b>匹配显卡驱动</div>
+      <div class="step" id="s4"><b>4 下载</b>模型与完成</div>
+    </div>
+
+    <div class="card" style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">环境自检</div>
+      <div id="envGpu" class="hint" style="line-height:1.9">检测中…</div>
+      <div id="envPy" class="hint" style="line-height:1.9"></div>
+      <div id="envDisk" class="hint" style="line-height:1.9"></div>
+    </div>
+
+    <label class="f"><span>安装位置</span>
+      <div class="row">
+        <input type="text" id="dir" spellcheck="false">
+        <button onclick="browse()">浏览…</button>
+        <button onclick="openDir()">打开</button>
+      </div>
+    </label>
+    <div class="path-preview" id="preview">—</div>
+    <div class="hint" id="spaceInfo" style="margin-top:6px"></div>
+    <label class="f" style="margin-top:14px"><span>已有 SoulX-Singer 目录（可选，填了就不再下载引擎）</span>
+      <input type="text" id="repoPath" placeholder="例如 C:\\DS\\cover\\SoulX-Singer" spellcheck="false"></label>
+
+    <div style="margin-top:20px"><span class="hint">安装内容</span></div>
+    <div class="chips">
+      <label class="chip"><input type="checkbox" id="cDeps" checked><span><b>Python 依赖</b><span>torch / demucs / gradio（约 2.5 GB）</span></span></label>
+      <label class="chip"><input type="checkbox" id="cSvc" checked><span><b>SVC 模型</b><span>model-svc.pt + rmvpe（约 2.9 GB）</span></span></label>
+      <label class="chip"><input type="checkbox" id="cDemucs" checked><span><b>Demucs 权重</b><span>人声分离（约 80 MB）</span></span></label>
+      <label class="chip"><input type="checkbox" id="cKara"><span><b>卡拉 OK 模型</b><span>可选，分离主唱/伴唱（1.7 GB）</span></span></label>
+    </div>
+
+    <div class="progress" id="prog">
+      <div class="plabel"><span><span class="ring" id="ring"></span> <span id="pstep">准备中…</span></span><span id="pbytes"></span></div>
+      <div class="bar"><i id="pbar"></i></div>
+      <pre id="plog"></pre>
+    </div>
+  </div>
+  <div class="foot">
+    <span class="hint" id="footer">需要 NVIDIA 显卡（6 GB 显存起）、16 GB 内存、约 12 GB 磁盘。</span>
+    <div class="row">
+      <button onclick="toggleTheme()" id="themeBtn">☾</button>
+      <button class="primary" id="go" onclick="start()">开始安装</button>
+    </div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let env={}, busy=false;
+function fmt(b){ if(!b) return '0 MB'; return b>1e9 ? (b/1e9).toFixed(2)+' GB' : (b/1e6).toFixed(0)+' MB'; }
+async function api(p,opt){const r=await fetch(p,opt);return r.json()}
+function toggleTheme(){document.body.classList.toggle('dark');$('themeBtn').textContent=document.body.classList.contains('dark')?'☀':'☾';}
+async function browse(){const r=await api('/api/browse',{method:'POST',body:'{}'});if(r.path){$('dir').value=r.path;checkDir();}}
+async function openAmd(){ await api('/api/open_amd',{method:'POST',body:'{}'}); }
+async function openDir(){await api('/api/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dir:$('dir').value})});}
+async function checkDir(){
+  const d=$('dir').value.trim();
+  $('preview').textContent = d ? d + '\\qdls, voices, pretrained, work' : '—';
+  if(!d) return;
+  const r=await api('/api/check_dir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dir:d})});
+  $('spaceInfo').textContent = `可用空间 ${r.free_gb} GB · 目录${r.exists?'已存在':'将创建'} · ${r.writable?'可写':'无写入权限'}`;
+}
+async function start(){
+  if(busy) return;
+  const dir=$('dir').value.trim();
+  if(!dir){alert('请先选择安装位置');return;}
+  busy=true; $('go').disabled=true; $('prog').classList.add('show'); $('ring').classList.add('show');
+  const components={deps:$('cDeps').checked,svc:$('cSvc').checked,demucs:$('cDemucs').checked,karaoke:$('cKara').checked};
+  await api('/api/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dir,components,python:env.python,repo_path:$('repoPath').value.trim()})});
+  poll();
+}
+async function poll(){
+  const p=await api('/api/progress');
+  $('pstep').textContent=p.step||'准备中…';
+  $('pbytes').textContent = p.total? `${fmt(p.bytes)} / ${fmt(p.total)} · ${p.percent}%` : '';
+  $('pbar').style.width=(p.percent||0)+'%';
+  if(p.log){$('plog').textContent=p.log.join('\n');$('plog').scrollTop=$('plog').scrollHeight;}
+  const idx=Math.min(4, Math.max(1, (p.step_index||0)));
+  for(let i=1;i<=4;i++){const el=$('s'+i);el.className='step'+(i===idx?' on':(p.done?' ok':''));}
+  if(p.done){$('ring').classList.remove('show');$('pstep').textContent='完成';$('go').disabled=false;$('go').textContent='重新安装';busy=false;
+    $('footer').textContent='安装完成，桌面已创建 QDLS 快捷方式。';return;}
+  if(p.error){$('ring').classList.remove('show');$('pstep').textContent='失败：'+p.error;$('go').disabled=false;busy=false;return;}
+  setTimeout(poll,800);
+}
+(async()=>{
+  env=await api('/api/env');
+  $('pyver').textContent = env.python ? ('Python '+env.python.version) : '未检测到 Python';
+  $('dir').value=env.default_dir;
+  await checkDir();
+  $('dir').addEventListener('input',checkDir);
+  renderEnv(env);
+})();
+function renderEnv(e){
+  const g=e.gpu||{};
+  if(g.vendor==='amd'){
+    envGpu.innerHTML='<b>AMD 显卡：'+g.name+'</b> · '+g.gfx+
+      '<br><span>AMD 不能直接跑 CUDA。QDLS 提供 <b>WSL2 + ROCm</b> 方案：Windows 只跑控制台，推理在 WSL 里。</span>'+
+      '<br><button class="sm" onclick="openAmd()" style="margin-top:8px">打开 AMD 安装说明</button>';
+    const go=go; go.disabled=true; go.textContent='AMD 请走 WSL 方案';
+    footer.textContent='AMD 显卡需要 WSL2 + ROCm，详见说明文档。';
+  } else if(g.found){
+    $('envGpu').innerHTML='显卡：<b>'+g.name+'</b> · '+g.vram_gb+' GB 显存 · 驱动 '+g.driver+
+      (g.cuda_tag?(' · 将使用 '+g.cuda_tag):' · <b style="color:var(--bad)">驱动过旧</b>')+
+      (g.fp16?' · 自动开启 FP16':'');
+  } else {
+    $('envGpu').innerHTML='<b style="color:var(--bad)">未检测到可用 NVIDIA 显卡</b>：'+(g.reason||'');
+  }
+  const p=e.python;
+  $('envPy').innerHTML = p
+    ? ('Python：<b>'+p.version+' '+p.bits+'-bit</b> · '+p.path+(p.bundled?'（内置）':''))
+    : 'Python：<b style="color:var(--warn)">未安装，将自动下载内置运行时（约 11 MB）</b>';
+  $('envDisk').innerHTML='安装位置可用空间：<b>'+(e.free_gb||0)+' GB</b>（建议 ≥ 12 GB）';
+}
+</script></body></html>

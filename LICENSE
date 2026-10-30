@@ -1,0 +1,48 @@
+CoverKit Non-Commercial License 1.0
+===================================
+
+Copyright (c) 2026 CoverKit contributors
+
+This license grants you the right to use, copy, modify and share this software
+for PERSONAL, NON-COMMERCIAL purposes only, subject to the conditions below.
+
+1. PERMITTED USE
+   You may use, study, modify and redistribute this software, in source or
+   binary form, provided that:
+   a) the use is non-commercial;
+   b) this license and the copyright notice are kept in all copies;
+   c) any modified version is clearly marked as modified.
+
+2. COMMERCIAL USE IS PROHIBITED
+   "Commercial use" means any use intended for or directed toward commercial
+   advantage or monetary compensation, including but not limited to: paid
+   song requests, paid music production, monetized streaming/live content,
+   SaaS or hosted services, resale, or bundling into a commercial product.
+   Commercial use requires prior written permission from the copyright holder.
+
+3. VOICE AND LIKENESS RIGHTS
+   This software performs voice conversion. You must NOT use it to clone,
+   imitate, or redistribute the voice of any real person, singer, voice actor
+   or virtual talent without their explicit authorization. You are solely
+   responsible for obtaining such authorization and for any resulting
+   infringement.
+
+4. THIRD-PARTY COMPONENTS
+   This project depends on third-party software and model weights
+   (including but not limited to SoulX-Singer, Demucs, PyTorch, Gradio).
+   Those components remain under their own licenses; this license does not
+   grant any rights to them.
+
+5. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+   USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+7. TERMINATION
+   Any violation of this license terminates your rights under it immediately.

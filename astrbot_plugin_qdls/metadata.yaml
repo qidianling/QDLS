@@ -1,0 +1,6 @@
+name: astrbot_plugin_qdls
+desc: QDLS 本地翻唱引擎对接插件（点歌、音色、状态、取消）
+help: 在 QDLS 控制台「接入」页生成配对码，把网关地址与 token 填进插件配置即可。
+version: 1.0.0
+author: QDLS
+repo: https://github.com/qidianling/QDLS

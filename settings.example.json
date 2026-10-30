@@ -1,0 +1,47 @@
+{
+  "language": "zh",
+  "theme": "dark",
+  "voice": "taffy",
+  "pitch_shift": 0,
+  "cfg": 2.5,
+  "n_steps": 40,
+  "acappella": true,
+  "denoise": {
+    "enabled": true,
+    "strength": 1.0
+  },
+  "peak": {
+    "enabled": true,
+    "ceiling_db": -3.0
+  },
+  "deess_db": -3.5,
+  "consonant_mix": 0.25,
+  "clip_min": 15,
+  "clip_max": 28,
+  "lift_max": 5,
+  "paths": {
+    "repo": "./SoulX-Singer",
+    "pretrained": "./pretrained",
+    "voices": "./voices",
+    "work": "./work",
+    "python": "python"
+  },
+  "gateway": {
+    "host": "127.0.0.1",
+    "port": 6767
+  },
+  "panel": {
+    "host": "127.0.0.1",
+    "port": 6768
+  },
+  "remote": {
+    "enabled": false,
+    "host": "",
+    "user": "root",
+    "key": "",
+    "remote_port": 6767,
+    "local_port": 6767,
+    "container": "astrbot",
+    "astrbot_config": "/opt/bots/astrbot/data/config/astrbot_plugin_matsuko_cover_config.json"
+  }
+}
