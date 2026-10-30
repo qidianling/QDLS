@@ -1,0 +1,27 @@
+name: 功能建议
+description: 想要的新能力或改进
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: 想要什么
+      description: 描述使用场景，而不是实现方式
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: 涉及部分
+      options:
+        - 音质 / 后处理
+        - 音色管理
+        - 控制台界面
+        - 插件 / 对接（AstrBot、DSH、MCP）
+        - 性能 / 显存
+        - 其他
+  - type: textarea
+    id: alt
+    attributes:
+      label: 你现在怎么绕过
+      description: 有临时方案也写一下

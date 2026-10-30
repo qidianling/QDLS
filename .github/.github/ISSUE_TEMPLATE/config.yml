@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安装与接线文档
+    url: https://github.com/qidianling/QDLS/blob/main/docs/fresh-machine.md
+    about: 全新电脑的完整安装、AstrBot / DSH 接线步骤
+  - name: 安全说明
+    url: https://github.com/qidianling/QDLS/blob/main/docs/security.md
+    about: 鉴权、配对码、风险边界

@@ -1,0 +1,61 @@
+name: 安装 / 运行问题
+description: 装不上、跑不起来、报错、音质异常
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先跑一下自检，把输出贴进来会快很多：
+
+        ```powershell
+        powershell -ExecutionPolicy Bypass -File tools\test_mcp.ps1
+        ```
+
+        以及控制台「日志」页最后 30 行。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 出问题的环节
+      options:
+        - 安装向导（setup.vbs）
+        - 引擎 / 网关启动
+        - 翻唱生成（点歌后失败或卡住）
+        - AstrBot 插件（QQ 那边）
+        - DSH / MCP 插件
+        - 控制台界面
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 现象
+      description: 你做了什么、期望什么、实际发生了什么
+      placeholder: 双击 QDLS 后控制台一直显示「离线」，日志里是 ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 控制台「日志」页，或 setup 进度框里的报错
+      render: shell
+  - type: input
+    id: gpu
+    attributes:
+      label: 显卡与显存
+      placeholder: RTX 3060 12GB / RX 6600 8GB / 无独显
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 系统版本
+      placeholder: Windows 11 23H2
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 确认
+      options:
+        - label: 我看过 docs/fresh-machine.md
+        - label: 我确认这不是商用场景
