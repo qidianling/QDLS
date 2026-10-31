@@ -35,7 +35,26 @@ function Open-Console {
   }
 }
 
+function Close-ConsoleWindow {
+  # the app-mode browser window runs in its own process; close it too
+  try {
+    $procs = Get-CimInstance Win32_Process -Filter "Name='msedge.exe' OR Name='chrome.exe'" -ErrorAction SilentlyContinue
+    foreach ($p in $procs) {
+      if ($p.CommandLine -and $p.CommandLine -like "*--app=http://127.0.0.1:$Port*") {
+        Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {
+    try {
+      Get-Process msedge, chrome -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowTitle -eq 'QDLS' } |
+        ForEach-Object { $_.CloseMainWindow() | Out-Null }
+    } catch {}
+  }
+}
+
 function Stop-QDLS {
+  Close-ConsoleWindow
   try { Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/api/stop" -TimeoutSec 10 | Out-Null } catch {}
   Start-Sleep -Milliseconds 1200
   try {

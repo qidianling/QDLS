@@ -43,5 +43,10 @@
     "local_port": 6767,
     "container": "astrbot",
     "astrbot_config": "/opt/bots/astrbot/data/config/astrbot_plugin_matsuko_cover_config.json"
+  },
+  "guard": {
+    "enabled": true,
+    "ram_percent": 90,
+    "idle_seconds": 60
   }
 }

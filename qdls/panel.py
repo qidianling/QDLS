@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -385,9 +386,9 @@ def hw_stats():
     return data
 
 
-def tail_log(n=60):
+def _tail_file(path: str, n: int) -> list:
     try:
-        with open(LOG, "rb") as f:
+        with open(path, "rb") as f:
             f.seek(0, os.SEEK_END)
             size = f.tell()
             f.seek(max(0, size - 200_000))
@@ -395,6 +396,21 @@ def tail_log(n=60):
         return lines[-n:]
     except Exception:
         return []
+
+
+def tail_log(n: int = 60) -> list:
+    """Merge the engine log and the panel log, ordered by their HH:MM:SS stamp."""
+    lines = _tail_file(os.path.join(HERE, "gateway.log"), 200)
+    lines += _tail_file(os.path.join(KIT_ROOT, "panel.log"), 80)
+    if not lines:
+        return []
+
+    def key(line: str) -> str:
+        m = re.match(r"\[(\d\d:\d\d:\d\d)\]", line)
+        return m.group(1) if m else "99:99:99"
+
+    lines.sort(key=key)
+    return lines[-n:]
 
 
 def profiles():
@@ -497,11 +513,60 @@ def build_voice_profile(name: str, raw: bytes, filename: str):
         _build = {"state": "error", "msg": str(exc)[:200], "id": None}
 
 
+GUARD = {"strikes": 0, "fired": 0.0}
+
+
+def guard_check() -> dict:
+    """Watch system RAM while idle; alert and self-terminate before the OS OOMs."""
+    cfg = settings.get("guard") or {}
+    if not cfg.get("enabled", True):
+        return {"enabled": False}
+    threshold = float(cfg.get("ram_percent", 90) or 90)
+    need = int(cfg.get("idle_seconds", 60) or 60)
+    try:
+        import psutil
+        pct = float(psutil.virtual_memory().percent)
+    except Exception:
+        return {"enabled": True, "ram_percent": 0.0, "armed": False}
+    busy = bool(job_state().get("busy"))
+    if busy or pct < threshold:
+        GUARD["strikes"] = 0
+        return {"enabled": True, "ram_percent": pct, "armed": False}
+    GUARD["strikes"] += 1
+    if GUARD["strikes"] * 10 < need:
+        return {"enabled": True, "ram_percent": pct, "armed": False,
+                "strikes": GUARD["strikes"]}
+    GUARD["strikes"] = 0
+    GUARD["fired"] = time.time()
+    log_event("guard: RAM %.0f%% >= %.0f%% while idle, showing alert and stopping" % (pct, threshold))
+    threading.Thread(target=_alert_and_quit,
+                     args=(pct, threshold), daemon=True).start()
+    return {"enabled": True, "ram_percent": pct, "armed": True, "fired": True}
+
+
+def _alert_and_quit(pct: float, threshold: float) -> None:
+    msg = ("QDLS 检测到系统内存占用 %.0f%%（阈值 %.0f%%），继续运行可能触发内存耗尽。\n\n"
+           "已自动停止翻唱服务以释放内存，请关闭部分程序后再启动。") % (pct, threshold)
+    try:
+        script = os.path.join(KIT_ROOT, "tools", "oom_alert.ps1")
+        if os.path.exists(script):
+            subprocess.Popen(["powershell", "-NoProfile", "-STA", "-WindowStyle", "Hidden",
+                              "-ExecutionPolicy", "Bypass", "-File", script, "-Message", msg],
+                             creationflags=CREATE_NO_WINDOW)
+    except Exception as exc:
+        log_event("guard: alert failed %s" % exc)
+    time.sleep(2)
+    stop_all()
+    time.sleep(1)
+    os._exit(0)
+
+
 def watchdog():
     fails = 0
     while True:
         time.sleep(10)
         try:
+            guard_check()
             with _lock:
                 if not _state.get("desired", True):
                     continue
@@ -650,6 +715,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, b"")
         if path in ("/", "/index.html"):
             return self._send(200, HTML, "text/html; charset=utf-8")
+        if path == "/api/guard":
+            cfg = settings.get("guard") or {}
+            return self._json({"ok": True, "config": cfg, "state": guard_check()})
+        if path == "/api/guard/test":
+            threading.Thread(target=_alert_and_quit,
+                             args=(95.0, float((settings.get("guard") or {}).get("ram_percent", 90))),
+                             daemon=True).start()
+            return self._json({"ok": True, "preview": True})
         if path == "/api/status":
             with _lock:
                 gw = port_open(GW_PORT)
