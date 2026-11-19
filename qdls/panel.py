@@ -25,6 +25,7 @@ sys.path.insert(0, HERE)
 import settings  # noqa: E402
 import access  # noqa: E402
 import jobs  # noqa: E402
+import tts  # noqa: E402
 
 CREATE_NO_WINDOW = 0x08000000
 DETACHED = 0x00000008
@@ -240,10 +241,18 @@ def remote_status():
     now = time.time()
     if now - _cache["remote"][0] < 8:
         return _cache["remote"][1]
-    rport, cname = int(remote.get("remote_port") or GW_PORT), remote.get("container") or "astrbot"
-    cmd = (f"docker exec {cname} curl -s -m 3 -o /dev/null -w '%{{http_code}}' "
-           f"http://172.17.0.1:{rport}/config")
-    code = ssh_script(cmd).strip() or "000"
+    rport = int(remote.get("remote_port") or GW_PORT)
+    # 隧道把端口绑在服务器 127.0.0.1 上，直接在宿主机探测即可，
+    # 不依赖容器名，也不要求容器里装了 curl。
+    cmd = ("curl -s -m 3 -o /dev/null -w '%{http_code}' "
+           f"http://127.0.0.1:{rport}/ 2>/dev/null "
+           f"|| (timeout 2 bash -c '</dev/tcp/127.0.0.1/{rport}' && echo 200) "
+           "|| echo 000")
+    raw = ssh_script(cmd) or ""
+    lines = [x.strip() for x in raw.strip().splitlines() if x.strip()]
+    code = lines[-1] if lines else "000"
+    if code not in ("200", "000", "301", "302", "404", "405"):
+        code = "000"
     _cache["remote"] = (now, code)
     return code
 
@@ -328,6 +337,93 @@ def _validate_settings(payload: dict) -> str:
     return ""
 
 
+def _ctrl(method: str, path: str, timeout: float = 30) -> dict:
+    import json as _j
+    import urllib.request as _u
+    try:
+        req = _u.Request("http://127.0.0.1:6770" + path, method=method,
+                         data=b"{}" if method == "POST" else None,
+                         headers={"Content-Type": "application/json"})
+        with _u.urlopen(req, timeout=timeout) as r:
+            return _j.loads(r.read().decode() or "{}")
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": str(exc)[:120]}
+
+
+def _vram() -> dict:
+    try:
+        import subprocess as _sp
+        out = _sp.run([r"C:\Windows\System32\nvidia-smi.exe",
+                       "--query-gpu=memory.used,memory.total",
+                       "--format=csv,noheader,nounits"],
+                      capture_output=True, text=True, timeout=8,
+                      creationflags=getattr(_sp, "CREATE_NO_WINDOW", 0)).stdout
+        used, total = [int(x) for x in out.strip().split(",")[:2]]
+        return {"used_mb": used, "total_mb": total}
+    except Exception:
+        return {"used_mb": 0, "total_mb": 0}
+
+
+def _model_state() -> dict:
+    st = tts.status() or {}
+    ctrl = _ctrl("GET", "/state", timeout=5)
+    svc = bool(ctrl.get("loaded")) if "loaded" in ctrl else _svc_loaded()
+    return {"svc_loaded": svc,
+            "tts_loaded": bool(st.get("running")),
+            "tts_idle": st.get("idle_seconds", 0),
+            "vram": _vram()}
+
+
+def _svc_loaded() -> bool:
+    try:
+        with open(os.path.join(WORK, "svc_state.json"), encoding="utf-8") as f:
+            return bool(json.load(f).get("loaded"))
+    except Exception:
+        return False
+
+
+def _tts_ref_for(name: str) -> str:
+    if not name:
+        return ""
+    voice_dir = str(settings.get("tts.voice_dir", "") or "")
+    if not voice_dir:
+        return ""
+    ref = os.path.join(voice_dir, name, "ref.wav")
+    return ref if os.path.exists(ref) else ""
+
+
+def _default_tts_ref() -> str:
+    """Pick the reference wav for the configured default voice."""
+    voice_dir = str(settings.get("tts.voice_dir", "") or "")
+    name = str(settings.get("tts.default_voice", "") or "")
+    if voice_dir and name:
+        ref = os.path.join(voice_dir, name, "ref.wav")
+        if os.path.exists(ref):
+            return ref
+    if voice_dir and os.path.isdir(voice_dir):
+        for d in sorted(os.listdir(voice_dir)):
+            ref = os.path.join(voice_dir, d, "ref.wav")
+            if os.path.isfile(ref):
+                return ref
+    return ""
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        import psutil
+        return psutil.pid_exists(pid)
+    except Exception:
+        return True
+
+
+def _gateway_pid() -> int:
+    try:
+        with open(os.path.join(WORK, "gateway.pid"), encoding="utf-8") as f:
+            return int(f.read().strip() or 0)
+    except Exception:
+        return 0
+
+
 def job_state():
     path = os.path.join(WORK, "job_state.json")
     try:
@@ -337,6 +433,19 @@ def job_state():
     stage = d.get("stage") or ""
     age = time.time() - float(d.get("updated") or 0)
     job = d.get("job") or ""
+
+    # 写状态的进程已经没了 → 任务其实中断了，别一直显示“处理中”
+    pid = int(d.get("pid") or 0)
+    if pid:
+        alive = _pid_alive(pid)
+        mine = _gateway_pid()
+        if not alive or (mine and pid != mine):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+            return {"busy": False, "stage": "idle", "elapsed": 0, "job": job,
+                    "error": "", "eta": 0}
     if stage.startswith("error"):
         return {"busy": False, "stage": "error", "elapsed": 0,
                 "job": job, "error": stage[6:].strip(), "eta": 0}
@@ -521,15 +630,20 @@ def guard_check() -> dict:
     cfg = settings.get("guard") or {}
     if not cfg.get("enabled", True):
         return {"enabled": False}
-    threshold = float(cfg.get("ram_percent", 90) or 90)
-    need = int(cfg.get("idle_seconds", 60) or 60)
+    threshold = float(cfg.get("ram_percent", 94) or 94)
+    need = int(cfg.get("idle_seconds", 120) or 120)
+    avail_floor = float(cfg.get("available_mb", 700) or 700)
     try:
         import psutil
-        pct = float(psutil.virtual_memory().percent)
+        vm = psutil.virtual_memory()
+        pct = float(vm.percent)
+        avail = float(vm.available) / 1e6
     except Exception:
         return {"enabled": True, "ram_percent": 0.0, "armed": False}
     busy = bool(job_state().get("busy"))
-    if busy or pct < threshold:
+    # 模型加载/网关启动阶段内存会短时冲高，不算风险；必须同时低于可用内存下限
+    starting = not port_open(GW_PORT)
+    if busy or starting or pct < threshold or avail > avail_floor:
         GUARD["strikes"] = 0
         return {"enabled": True, "ram_percent": pct, "armed": False}
     GUARD["strikes"] += 1
@@ -567,6 +681,10 @@ def watchdog():
         time.sleep(10)
         try:
             guard_check()
+            try:
+                tts.idle_release()
+            except Exception:
+                pass
             with _lock:
                 if not _state.get("desired", True):
                     continue
@@ -610,8 +728,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.end_headers()
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            return
+        try:
+            self.wfile.write(data)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass  # browser closed the tab / refreshed; not an error
 
     def _origin_ok(self) -> bool:
         """Block cross-site requests to the local API (CSRF / DNS rebinding)."""
@@ -723,6 +847,12 @@ class Handler(BaseHTTPRequestHandler):
                              args=(95.0, float((settings.get("guard") or {}).get("ram_percent", 90))),
                              daemon=True).start()
             return self._json({"ok": True, "preview": True})
+        if path == "/api/models/state":
+            return self._json({"ok": True, **_model_state()})
+        if path == "/api/tts/status":
+            st = tts.status() or {}
+            st["svc_loaded"] = _svc_loaded()
+            return self._json({"ok": True, **st})
         if path == "/api/status":
             with _lock:
                 gw = port_open(GW_PORT)
@@ -896,6 +1026,50 @@ class Handler(BaseHTTPRequestHandler):
             vid = payload.get("voice") or settings.get("voice")
             threading.Thread(target=run_test, args=(vid,), daemon=True).start()
             return self._json({"ok": True})
+        if path == "/api/models/svc_load":
+            r = _ctrl("POST", "/load", timeout=300)
+            return self._json({"ok": bool(r.get("ok")), **(_model_state())})
+        if path == "/api/models/svc_release":
+            _ctrl("POST", "/release", timeout=30)
+            time.sleep(1)
+            return self._json({"ok": True, **(_model_state())})
+        if path == "/api/models/tts_load":
+            ok = tts.ensure(timeout=300)
+            return self._json({"ok": ok, **(_model_state())})
+        if path == "/api/models/tts_release":
+            tts.release()
+            time.sleep(1)
+            return self._json({"ok": True, **(_model_state())})
+        if path in ("/api/tts", "/tts"):
+            if not bool(settings.get("tts.enabled", True)):
+                return self._json({"ok": False, "error": "TTS 未启用"})
+            text = str(payload.get("text") or "").strip()
+            if not text:
+                return self._json({"ok": False, "error": "text 为空"})
+            name = str(payload.get("character_name") or payload.get("voice") or "")
+            ref = str(payload.get("ref") or "") or _tts_ref_for(name) or _default_tts_ref()
+            if not ref:
+                return self._json({"ok": False, "error": "找不到参考音频"})
+            try:
+                wav = tts.say(text, ref,
+                              emo_alpha=float(payload.get("emo_alpha") or 0.85),
+                              duration_factor=float(payload.get("duration_factor") or 1.0))
+            except Exception as exc:  # noqa: BLE001
+                return self._json({"ok": False, "error": str(exc)[:300]}, 500)
+            from urllib.parse import quote
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Disposition", "inline; filename*=UTF-8''" + quote("tts.wav"))
+            self.send_header("Content-Length", str(len(wav)))
+            self.end_headers()
+            try:
+                self.wfile.write(wav)
+            except Exception:
+                pass
+            return None
+        if path == "/api/tts/release":
+            tts.release()
+            return self._json({"ok": True, **(tts.status() or {})})
         if path == "/api/song":
             song = str(payload.get("song") or "").strip()
             if not song:
@@ -948,7 +1122,17 @@ def main():
         return
     threading.Thread(target=watchdog, daemon=True).start()
     threading.Thread(target=lambda: (start_gateway(), start_tunnel()), daemon=True).start()
-    srv = ThreadingHTTPServer(("127.0.0.1", PANEL_PORT), Handler)
+    class QuietServer(ThreadingHTTPServer):
+        daemon_threads = True
+
+        def handle_error(self, request, client_address):
+            import sys as _sys
+            exc = _sys.exc_info()[1]
+            if isinstance(exc, (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)):
+                return
+            super().handle_error(request, client_address)
+
+    srv = QuietServer(("127.0.0.1", PANEL_PORT), Handler)
     print(f"QDLS panel: http://127.0.0.1:{PANEL_PORT}")
     srv.serve_forever()
 

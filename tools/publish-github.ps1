@@ -6,7 +6,7 @@
 # Nothing is stored on disk: the token is only used for this run.
 
 param(
-  [string]$User = "qidianling",
+  [Parameter(Mandatory = $true)][string]$User,
   [Parameter(Mandatory = $true)][string]$Token,
   [string]$Repo = "QDLS",
   [string]$Description = "Local zero-shot singing voice conversion workbench (non-commercial)",
@@ -62,4 +62,3 @@ Write-Host "完成：https://github.com/$User/$Repo" -ForegroundColor Green
 Write-Host "接下来在网页上："
 Write-Host "  - Releases → Draft a new release → tag v1.0.0"
 Write-Host "  - 正文粘贴 RELEASE.md，附件上传 release/QDLS.zip"
-

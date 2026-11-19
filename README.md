@@ -1,45 +1,9 @@
 # QDLS · 本地 AI 翻唱引擎
 
-[![Release](https://img.shields.io/github/v/release/qidianling/QDLS?color=4f7cff&label=release)](https://github.com/qidianling/QDLS/releases)
-[![License](https://img.shields.io/badge/license-NonCommercial-orange)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11-blue)](requirements.txt)
-[![GPU](https://img.shields.io/badge/GPU-NVIDIA%20CUDA-76b900)](docs/amd-wsl-rocm.md)
-
-> **一句话：在 QQ 里说「唱首失眠」，十几秒后收到一条自己的音色唱的语音。**
-> 全部推理跑在你自己的显卡上——不上传音频、不排队、不依赖任何人的服务器。
-
-<p align="center">
-  <img src="docs/images/chat-cover.webp" width="520" alt="QQ 里点歌，收到 19 秒翻唱语音">
-</p>
-
-<p align="center"><i>QQ 里说一句歌名，语音和歌词直接回来（19 秒清唱片段）</i></p>
-
-<table>
-<tr>
-<td width="50%"><img src="docs/images/panel-home.webp" alt="控制台首页"></td>
-<td width="50%"><img src="docs/images/panel-engine.webp" alt="引擎参数"></td>
-</tr>
-<tr>
-<td align="center"><i>控制台首页：链路状态、点歌、显存/温度</i></td>
-<td align="center"><i>引擎页：音调、贴合度、降噪、削峰、片段长度</i></td>
-</tr>
-</table>
+> 把一首歌换成你指定的音色，只留人声、去伴奏，通过 QQ / AstrBot 直接发出去。
+> 全部推理跑在你自己的显卡上，不上传音频、不依赖别人的服务器。
 
 **默认音色是 `taffy`（原创占位音色，避免任何版权问题）。** 想换成别的声音，请用你自己拥有权利的参考音频。
-
----
-
-## 30 秒上手
-
-```powershell
-git clone https://github.com/qidianling/QDLS.git QDLS
-cd QDLS
-# 双击 setup.vbs（自动装 Python 运行时、依赖与模型，约 5.5 GB）
-```
-
-装完双击桌面 **QDLS** → 控制台「接入」页 → **写入 DSH 凭据** / 生成 AstrBot token → 装上插件即可。
-
-> 详细步骤见 [docs/fresh-machine.md](docs/fresh-machine.md)（全新电脑）与 [docs/dsh-install.md](docs/dsh-install.md)（DSH）。
 
 ---
 
@@ -55,11 +19,6 @@ cd QDLS
 如果你要商用，请自行获得模型与音色权利方的书面授权。
 
 ---
-
-## 想系统搞懂原理？
-
-[docs/learn.md](docs/learn.md) 是写给零基础的完整教程：链接架构、每个参数的样本值、
-四套优化模式、以及「质量 / 速度 / 显存」三者怎么取舍。
 
 ## 1. 这是什么 / 用途
 

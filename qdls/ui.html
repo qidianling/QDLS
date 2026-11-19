@@ -2,9 +2,9 @@
 <html lang="zh"><head><meta charset="utf-8">
 <title>QDLS</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="512x512" href="/icon.png">
-<link rel="apple-touch-icon" href="/icon.png">
+<link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico?v=6">
+<link rel="icon" type="image/png" sizes="256x256" href="/icon.png?v=6">
+<link rel="apple-touch-icon" href="/icon.png?v=6">
 <style>
 :root{
   --bg:#f5f7fb; --panel:#ffffff; --side:#ffffff; --line:#e8ecf5; --tx:#1f2733;
@@ -102,7 +102,7 @@ body.dark .overlay{background:rgba(0,0,0,.55)}
 <body>
 <div class="app">
   <aside class="side">
-    <div class="brand"><img class="logo" src="/icon.png" alt="QDLS"><div><b>QDLS</b><span id="brandSub">本地翻唱引擎</span></div></div>
+    <div class="brand"><img class="logo" src="/icon.png?v=6" alt="QDLS"><div><b>QDLS</b><span id="brandSub">本地翻唱引擎</span></div></div>
     <nav>
       <div class="nav-item active" data-page="home" onclick="go('home')"><span>◆</span><span data-i18n="navHome">首页</span></div>
       <div class="nav-item" data-page="engine" onclick="go('engine')"><span>⚙</span><span data-i18n="navEngine">引擎</span></div>
@@ -111,6 +111,7 @@ body.dark .overlay{background:rgba(0,0,0,.55)}
       <div class="nav-item" data-page="song" onclick="go('song')"><span>♪</span><span data-i18n="navSong">点歌台</span></div>
       <div class="nav-item" data-page="test" onclick="go('test')"><span>▷</span><span data-i18n="navTest">测试</span></div>
       <div class="nav-item" data-page="access" onclick="go('access')"><span>⚿</span><span data-i18n="navAccess">接入</span></div>
+      <div class="nav-item" data-page="speak" onclick="go('speak')"><span>🎙</span><span data-i18n="navSpeak">语音</span></div>
       <div class="nav-item" data-page="log" onclick="go('log')"><span>≡</span><span data-i18n="navLog">日志</span></div>
       <div class="nav-item" data-page="settings" onclick="go('settings')"><span>⚒</span><span data-i18n="navSettings">设置</span></div>
     </nav>
@@ -155,7 +156,24 @@ body.dark .overlay{background:rgba(0,0,0,.55)}
             <div class="list" id="recentList"><span class="muted" data-i18n="empty">暂无记录</span></div>
           </div>
           <div class="card">
-            <h3 data-i18n="hardware">硬件</h3><p class="sub" id="gpuName">—</p>
+            <div class="card" style="margin-top:16px">
+        <h3 data-i18n="mdTitle">模型常驻</h3>
+        <p class="sub" data-i18n="mdSub">显存只有一份，谁用谁上；这里可以手动加载/卸载。</p>
+        <div class="row" style="gap:22px;flex-wrap:wrap;margin-top:6px">
+          <span><b>SVC</b> <span id="mdSvc">—</span></span>
+          <span><b>TTS</b> <span id="mdTts">—</span></span>
+          <span class="muted">显存 <b id="mdVram">—</b></span>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="sm" onclick="modelAct('svc_load')" data-i18n="mdSvcLoad">加载 SVC</button>
+          <button class="sm" onclick="modelAct('svc_release')" data-i18n="mdSvcRel">卸载 SVC</button>
+          <button class="sm" onclick="modelAct('tts_load')" data-i18n="mdTtsLoad">加载 TTS</button>
+          <button class="sm" onclick="modelAct('tts_release')" data-i18n="mdTtsRel">卸载 TTS</button>
+          <span class="hint" id="mdMsg"></span>
+        </div>
+      </div>
+
+      <h3 data-i18n="hardware">硬件</h3><p class="sub" id="gpuName">—</p>
             <div class="slider-row"><b>GPU</b><span id="gpuUtil">—</span></div><div class="bar" id="gpuBar"><i></i></div>
             <div class="slider-row" style="margin-top:12px"><b data-i18n="vram">显存</b><span id="vramTxt">—</span></div><div class="bar" id="vramBar"><i></i></div>
             <div class="slider-row" style="margin-top:12px"><b>CPU</b><span id="cpuTxt">—</span></div><div class="bar" id="cpuBar"><i></i></div>
@@ -367,6 +385,34 @@ body.dark .overlay{background:rgba(0,0,0,.55)}
         </div>
       </section>
 
+      <section class="page" id="page-speak">
+        <div class="card">
+          <h3 data-i18n="speakTitle">语音合成</h3>
+          <p class="sub" data-i18n="speakSub">用你的音色参考直接说话；情绪强度跟随参考的程度由滑杆控制。</p>
+          <textarea id="spText" rows="4" placeholder="输入要说的内容…"
+                    style="width:100%;margin-top:10px;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit"></textarea>
+          <div class="row" style="margin-top:12px">
+            <label class="f"><span data-i18n="spEmo">情绪强度</span>
+              <input type="range" id="spEmo" min="0" max="1" step="0.05" value="0.85" oninput="$('spEmoVal').textContent=this.value">
+            </label>
+            <label class="f"><span data-i18n="spSpeed">语速</span>
+              <input type="range" id="spSpeed" min="0.8" max="1.2" step="0.05" value="1" oninput="$('spSpeedVal').textContent=this.value">
+            </label>
+            <span class="hint"><b id="spEmoVal">0.85</b> · <b id="spSpeedVal">1</b></span>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" onclick="speak()" data-i18n="spGo">生成语音</button>
+            <button class="sm" onclick="releaseTts()" data-i18n="spRelease">释放显存</button>
+            <span class="hint" id="spMsg"></span>
+          </div>
+          <audio id="spAudio" controls style="display:none;margin-top:14px"></audio>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3 data-i18n="spState">模型状态</h3>
+          <p class="sub" id="spState">—</p>
+        </div>
+      </section>
+
       <!-- log -->
       <section class="page" id="page-log">
         <div class="card"><pre id="log" class="logbox">连接中…</pre></div>
@@ -449,7 +495,7 @@ body.dark .overlay{background:rgba(0,0,0,.55)}
 
 <script>
 const I18N={
- zh:{brand:"本地翻唱引擎",navHome:"首页",navEngine:"引擎",navVoice:"音色",navSong:"点歌台",navAdvanced:"高级",navTest:"测试",songPage:"点歌台",songPageSub:"输入歌名生成成品，可保存到本地",download:"下载到本地",openFolder:"打开输出目录",downloadHint:"MP3 会保存到浏览器下载目录",testTitle:"测试（仅预览）",testSub:"用内置片段快速验证当前参数，不提供保存",testRun:"生成预览",testOnly:"此页面只用于试听，成品请在「点歌台」生成并下载。",advSvc:"SVC 原版参数",advSvcSub:"直接透传到 SoulX-Singer 推理",advAutoShift:"自动移调（按参考音高）",advFp16:"FP16 推理（省显存，需重建模型）",advSeed:"随机种子",advRandomSeed:"每次随机",advFullSong:"整首（不截取片段）",advPipe:"流程内部参数",advPipeSub:"影响稳定性与动态，改完立即生效",advLiftRatio:"自适应升调阈值",advRepair:"跳变修复",advJump:"跳变阈值（半音）",advCompThr:"压缩阈值 (dB)",advCompRatio:"压缩比例",advGate:"音域门限",advGateSub:"超出范围直接拒绝，避免崩坏",advGateOn:"启用门限",advGateP95:"P95 上限 (Hz)",advGateMax:"最大音高 (Hz)",navLog:"日志",navSettings:"设置",navAccess:"接入",accessSub:"配对码、Token 与已接入机器人",pairing:"令牌",newToken:"直接生成 Token",dshCred:"写入 DSH 凭据",tokenOnce:"只显示这一次，复制到插件配置里",pairingSub:"32 位随机串，10 分钟内有效、只能用一次（换 token 用）",genCode:"生成配对码",copy:"复制",copied:"已复制",pairingTip:"在 AstrBot 装 astrbot_plugin_qdls → 配置里填网关地址 + 这个 token",connectedBots:"已接入",connectedSub:"用 token 调用过 API 的机器人",tokens:"API Token",tokensSub:"泄露了就撤销，插件那边换新 token 即可",pluginHint:"插件配置示例",revoke:"撤销",
+ zh:{brand:"本地翻唱引擎",navHome:"首页",navEngine:"引擎",navVoice:"音色",navSong:"点歌台",navAdvanced:"高级",navTest:"测试",songPage:"点歌台",songPageSub:"输入歌名生成成品，可保存到本地",download:"下载到本地",openFolder:"打开输出目录",downloadHint:"MP3 会保存到浏览器下载目录",testTitle:"测试（仅预览）",testSub:"用内置片段快速验证当前参数，不提供保存",testRun:"生成预览",testOnly:"此页面只用于试听，成品请在「点歌台」生成并下载。",advSvc:"SVC 原版参数",advSvcSub:"直接透传到 SoulX-Singer 推理",advAutoShift:"自动移调（按参考音高）",advFp16:"FP16 推理（省显存，需重建模型）",advSeed:"随机种子",advRandomSeed:"每次随机",advFullSong:"整首（不截取片段）",advPipe:"流程内部参数",advPipeSub:"影响稳定性与动态，改完立即生效",advLiftRatio:"自适应升调阈值",advRepair:"跳变修复",advJump:"跳变阈值（半音）",advCompThr:"压缩阈值 (dB)",advCompRatio:"压缩比例",advGate:"音域门限",advGateSub:"超出范围直接拒绝，避免崩坏",advGateOn:"启用门限",advGateP95:"P95 上限 (Hz)",advGateMax:"最大音高 (Hz)",navLog:"日志",navSettings:"设置",navAccess:"接入",navSpeak:"语音",accessSub:"配对码、Token 与已接入机器人",pairing:"令牌",newToken:"直接生成 Token",dshCred:"写入 DSH 凭据",tokenOnce:"只显示这一次，复制到插件配置里",pairingSub:"32 位随机串，10 分钟内有效、只能用一次（换 token 用）",genCode:"生成配对码",copy:"复制",copied:"已复制",pairingTip:"在 AstrBot 装 astrbot_plugin_qdls → 配置里填网关地址 + 这个 token",connectedBots:"已接入",connectedSub:"用 token 调用过 API 的机器人",tokens:"API Token",tokensSub:"泄露了就撤销，插件那边换新 token 即可",pluginHint:"插件配置示例",revoke:"撤销",
   tHome:"首页",sHome:"运行状态与快捷操作",tEngine:"引擎",sEngine:"音色与后处理参数",tVoice:"音色",sVoice:"参考音频管理",
   tSong:"点歌台",sSong:"输入歌名或链接，生成后直接试听",tLog:"日志",sLog:"网关实时输出",tSettings:"设置",sSettings:"路径、云端接入与端口",
   gw:"本机网关",remote:"云端链路",job:"处理状态",voice:"当前音色",start:"启动",restart:"重启",stop:"停止",fixTunnel:"修复隧道",
@@ -461,12 +507,12 @@ const I18N={
   uploadRef:"新增音色",uploadRefSub:"建议使用唱声版：纯人声演唱 15~25 秒",voiceName:"音色名称",upload:"生成音色",
   uploadTip:"会自动分离人声并挑最稳的 20 秒；说话声也能用，但电音感更重。",songPh:"歌名或链接",
   paths:"路径",pathsSub:"修改后需要重启网关",repo:"SoulX-Singer 目录",pretrained:"模型目录",voices:"音色目录",work:"工作目录",
-  python:"Python 路径",remoteCfg:"云端接入",resetLink:"重置云端链路",guardTitle:"内存保护",guardSub:"空闲时如果系统内存超过阈值，QDLS 会弹窗提示后自动退出，避免整机 OOM。翻唱进行中不会触发。",guardEnable:"启用内存保护",guardRam:"内存阈值（%）",guardIdle:"持续秒数",guardTest:"预览提示",trayTitle:"托盘与退出",traySub:"关闭这个窗口不会退出程序，它会缩到系统托盘继续跑（AstrBot 照常可用）。要彻底退出，请右键托盘图标 → 「退出 QDLS」。",remoteCfgSub:"可选：让远端 AstrBot 通过 SSH 隧道调用本机",enableRemote:"启用隧道",
+  python:"Python 路径",remoteCfg:"云端接入",resetLink:"重置云端链路",speakTitle:"语音合成",speakSub:"用你的音色参考直接说话；情绪强度跟随参考的程度由滑杆控制。",spEmo:"情绪强度",spSpeed:"语速",spGo:"生成语音",spRelease:"释放显存",spState:"模型状态",spRunning:"已加载",spStopped:"未加载",spEmpty:"先说点什么",spBusy:"合成中…",spReleased:"已释放",mdTitle:"模型常驻",mdSub:"显存只有一份，谁用谁上；这里可以手动加载/卸载。",mdSvcLoad:"加载 SVC",mdSvcRel:"卸载 SVC",mdTtsLoad:"加载 TTS",mdTtsRel:"卸载 TTS",loaded:"已加载",unloaded:"未加载",done:"完成",guardTitle:"内存保护",guardSub:"空闲时如果系统内存超过阈值，QDLS 会弹窗提示后自动退出，避免整机 OOM。翻唱进行中不会触发。",guardEnable:"启用内存保护",guardRam:"内存阈值（%）",guardIdle:"持续秒数",guardTest:"预览提示",trayTitle:"托盘与退出",traySub:"关闭这个窗口不会退出程序，它会缩到系统托盘继续跑（AstrBot 照常可用）。要彻底退出，请右键托盘图标 → 「退出 QDLS」。",remoteCfgSub:"可选：让远端 AstrBot 通过 SSH 隧道调用本机",enableRemote:"启用隧道",
   host:"服务器",user:"用户",key:"SSH 私钥",rport:"远端端口",container:"容器名",ports:"端口",portsSub:"改完需重启面板",
   gwPort:"网关端口",panelPort:"面板端口",restartGateway:"重启网关",saved:"已保存",built:"已生成",running:"处理中…",
   done:"完成，可直接播放",failed:"失败",online:"在线",offline:"离线",idle:"空闲",busy:"处理中",err:"出错",
   connected:"已连通",disconnected:"未连通",off:"未启用",setDefault:"设为默认",applied:"已切换"},
- en:{brand:"local voice kit",navHome:"Home",navEngine:"Engine",navVoice:"Voices",navSong:"Song",navAdvanced:"Advanced",navTest:"Test",songPage:"Song request",songPageSub:"Type a song name, keep the mp3 locally",download:"Download",openFolder:"Open output folder",downloadHint:"saved to your browser download folder",testTitle:"Test (preview only)",testSub:"quick check of current settings, nothing is saved",testRun:"Generate preview",testOnly:"Preview only. Use Song request to produce a downloadable file.",advSvc:"Native SVC params",advSvcSub:"passed straight to SoulX-Singer",advAutoShift:"Auto transpose (match reference pitch)",advFp16:"FP16 inference (less VRAM, rebuilds model)",advSeed:"Seed",advRandomSeed:"random each run",advFullSong:"Whole song (no excerpt)",advPipe:"Pipeline internals",advPipeSub:"stability and dynamics, applied immediately",advLiftRatio:"Auto-lift threshold",advRepair:"Jump repair",advJump:"Jump threshold (semitone)",advCompThr:"Compressor threshold (dB)",advCompRatio:"Compressor ratio",advGate:"Range gate",advGateSub:"reject songs outside the comfort zone",advGateOn:"Enable gate",advGateP95:"P95 limit (Hz)",advGateMax:"Max pitch (Hz)",navLog:"Logs",navSettings:"Settings",navAccess:"Access",accessSub:"pairing codes, tokens and bots",pairing:"Tokens",newToken:"Issue token",dshCred:"Provision DSH",tokenOnce:"shown once - copy it into the client config",pairingSub:"32-char random string, one-time, valid for 10 minutes",genCode:"Generate code",copy:"Copy",copied:"Copied",pairingTip:"Install astrbot_plugin_qdls and paste the gateway URL + this token",connectedBots:"Connected bots",connectedSub:"bots that called the API",tokens:"API tokens",tokensSub:"revoke a leaked token and issue a new one",pluginHint:"Plugin config sample",revoke:"Revoke",
+ en:{brand:"local voice kit",navHome:"Home",navEngine:"Engine",navVoice:"Voices",navSong:"Song",navAdvanced:"Advanced",navTest:"Test",songPage:"Song request",songPageSub:"Type a song name, keep the mp3 locally",download:"Download",openFolder:"Open output folder",downloadHint:"saved to your browser download folder",testTitle:"Test (preview only)",testSub:"quick check of current settings, nothing is saved",testRun:"Generate preview",testOnly:"Preview only. Use Song request to produce a downloadable file.",advSvc:"Native SVC params",advSvcSub:"passed straight to SoulX-Singer",advAutoShift:"Auto transpose (match reference pitch)",advFp16:"FP16 inference (less VRAM, rebuilds model)",advSeed:"Seed",advRandomSeed:"random each run",advFullSong:"Whole song (no excerpt)",advPipe:"Pipeline internals",advPipeSub:"stability and dynamics, applied immediately",advLiftRatio:"Auto-lift threshold",advRepair:"Jump repair",advJump:"Jump threshold (semitone)",advCompThr:"Compressor threshold (dB)",advCompRatio:"Compressor ratio",advGate:"Range gate",advGateSub:"reject songs outside the comfort zone",advGateOn:"Enable gate",advGateP95:"P95 limit (Hz)",advGateMax:"Max pitch (Hz)",navLog:"Logs",navSettings:"Settings",navAccess:"Access",navSpeak:"Voice",accessSub:"pairing codes, tokens and bots",pairing:"Tokens",newToken:"Issue token",dshCred:"Provision DSH",tokenOnce:"shown once - copy it into the client config",pairingSub:"32-char random string, one-time, valid for 10 minutes",genCode:"Generate code",copy:"Copy",copied:"Copied",pairingTip:"Install astrbot_plugin_qdls and paste the gateway URL + this token",connectedBots:"Connected bots",connectedSub:"bots that called the API",tokens:"API tokens",tokensSub:"revoke a leaked token and issue a new one",pluginHint:"Plugin config sample",revoke:"Revoke",
   tHome:"Home",sHome:"Status and quick actions",tEngine:"Engine",sEngine:"Timbre and post-processing",tVoice:"Voices",sVoice:"Reference audio",
   tSong:"Song request",sSong:"Type a song or URL, preview when done",tLog:"Logs",sLog:"Live gateway output",tSettings:"Settings",sSettings:"Paths, cloud link, ports",
   gw:"Gateway",remote:"Cloud link",job:"Job",voice:"Voice",start:"Start",restart:"Restart",stop:"Stop",fixTunnel:"Fix tunnel",
@@ -510,6 +556,8 @@ function go(page){
   if(page==='voice') renderVoices();
   if(page==='access') loadAccess();
   if(page==='settings') loadGuard();
+  if(page==='speak') loadSpeak();
+  if(page==='home') loadModels();
 }
 async function api(p,opt){const r=await fetch(p,opt);return r.json()}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
@@ -662,6 +710,59 @@ async function saveSettingsPage(){
     gateway:{host:'127.0.0.1',port:+$('gPort').value},panel:{host:'127.0.0.1',port:+$('pnPort').value}};
   const r=await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   $('settingsMsg').textContent=r.ok?T('saved'):T('failed'); setTimeout(()=>$('settingsMsg').textContent='',2200);
+}
+async function loadModels(){
+  try{
+    const r = await api('/api/models/state');
+    $('mdSvc').textContent = r.svc_loaded ? T('loaded') : T('unloaded');
+    $('mdTts').textContent = r.tts_loaded ? (T('loaded') + ' · ' + (r.tts_idle||0) + 's') : T('unloaded');
+    const v = r.vram || {};
+    $('mdVram').textContent = v.total_mb ? (v.used_mb/1024).toFixed(1) + ' / ' + (v.total_mb/1024).toFixed(1) + ' GB' : '—';
+  }catch(e){}
+}
+async function modelAct(what){
+  const labels = {svc_load:T('mdSvcLoad'), svc_release:T('mdSvcRel'), tts_load:T('mdTtsLoad'), tts_release:T('mdTtsRel')};
+  $('mdMsg').textContent = (labels[what]||'') + ' …';
+  try{
+    const r = await api('/api/models/' + what, {method:'POST'});
+    $('mdMsg').textContent = r.ok ? T('done') : ('失败：' + (r.error || ''));
+  }catch(e){ $('mdMsg').textContent = '失败'; }
+  loadModels();
+}
+async function loadSpeak(){
+  try{
+    const r = await api('/api/tts/status');
+    $('spState').textContent = r.running
+      ? (T('spRunning') + ' · ' + (r.idle_seconds||0) + 's')
+      : T('spStopped');
+  }catch(e){}
+}
+async function speak(){
+  const text = ($('spText').value || '').trim();
+  if(!text){ $('spMsg').textContent = T('spEmpty'); return; }
+  $('spMsg').textContent = T('spBusy');
+  const body = JSON.stringify({text,
+    emo_alpha: parseFloat($('spEmo').value),
+    duration_factor: parseFloat($('spSpeed').value)});
+  try{
+    const res = await fetch('/api/tts', {method:'POST', headers:{'Content-Type':'application/json'}, body});
+    if(!res.ok){
+      const j = await res.json().catch(()=>({error:res.status}));
+      $('spMsg').textContent = '失败：' + (j.error || res.status);
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const au = $('spAudio');
+    au.src = url; au.style.display='block'; au.play().catch(()=>{});
+    $('spMsg').textContent = (blob.size/1024).toFixed(0) + ' KB';
+    loadSpeak();
+  }catch(e){ $('spMsg').textContent = '失败：' + e; }
+}
+async function releaseTts(){
+  await api('/api/tts/release',{method:'POST'});
+  $('spMsg').textContent = T('spReleased');
+  loadSpeak();
 }
 async function loadAccess(){
   try{

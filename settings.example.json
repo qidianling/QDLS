@@ -48,5 +48,18 @@
     "enabled": true,
     "ram_percent": 90,
     "idle_seconds": 60
+  },
+  "tts": {
+    "enabled": false,
+    "port": 6769,
+    "python": "",
+    "server": "",
+    "home": "",
+    "site_packages": "",
+    "voice_dir": "./voices_tts",
+    "default_voice": "",
+    "emo_alpha": 0.85,
+    "idle_unload_seconds": 600,
+    "bf16": true
   }
 }

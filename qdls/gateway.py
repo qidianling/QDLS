@@ -14,6 +14,7 @@ import json
 import os
 import shutil
 import sys
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,6 +59,66 @@ DEVICE = os.environ.get("COVER_DEVICE", "cuda")
 FP16 = os.environ.get("COVER_FP16", "0") == "1"
 
 _engine = None
+
+
+_last_use = 0.0
+_svc_state_path = os.path.join(engine.WORK_DIR, "svc_state.json")
+
+
+def mark_used() -> None:
+    global _last_use
+    _last_use = time.time()
+    try:
+        os.makedirs(engine.WORK_DIR, exist_ok=True)
+        with open(_svc_state_path, "w", encoding="utf-8") as f:
+            json.dump({"loaded": _engine is not None, "last_used": _last_use,
+                       "pid": os.getpid()}, f)
+    except Exception:
+        pass
+
+
+def release_svc(reason: str = "") -> bool:
+    """把 SVC 从显存里卸掉；进程留着，下次点歌再加载。"""
+    global _engine
+    if _engine is None:
+        return False
+    try:
+        engine.log(f"releasing SVC ({reason or 'manual'})")
+    except Exception:
+        pass
+    try:
+        del _engine
+    except Exception:
+        pass
+    _engine = None
+    try:
+        import gc
+        import torch
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+    except Exception:
+        pass
+    try:
+        with open(_svc_state_path, "w", encoding="utf-8") as f:
+            json.dump({"loaded": False, "last_used": _last_use, "pid": os.getpid()}, f)
+    except Exception:
+        pass
+    return True
+
+
+def idle_watch() -> None:
+    """空闲超过阈值就卸载 SVC；TTS 用得比 SVC 频繁时这能省下 4 GB。"""
+    while True:
+        time.sleep(30)
+        try:
+            limit = float(settings.get("vram.svc_idle_unload_seconds", 900) or 900)
+            if limit <= 0 or _engine is None:
+                continue
+            if _last_use and time.time() - _last_use > limit:
+                release_svc(f"idle {int(time.time() - _last_use)}s")
+        except Exception:
+            pass
 
 
 def get_engine() -> engine.CoverEngine:
@@ -110,6 +171,7 @@ def do_convert(song_name_src="", model_dropdown="", pitch_shift=None, auto_shift
             except Exception:
                 pass
 
+    mark_used()
     try:
         out = get_engine().run(
             src, profile,
@@ -281,6 +343,60 @@ def build_ui():
     return demo
 
 
+CTRL_PORT = int(os.environ.get("QDLS_CTRL_PORT", "6770"))
+
+
+def _ctrl_server() -> None:
+    """6770: /state /load /release ��面板手动控制 SVC 的常驻状态。"""
+    import json as _json
+    import threading as _th
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    class H(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def log_message(self, *a):
+            pass
+
+        def _send(self, code, obj):
+            body = _json.dumps(obj, ensure_ascii=False).encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            try:
+                self.wfile.write(body)
+            except Exception:
+                pass
+
+        def do_GET(self):
+            if self.path.split("?")[0] != "/state":
+                return self._send(404, {"error": "not found"})
+            return self._send(200, {"ok": True, "loaded": _engine is not None,
+                                    "pid": os.getpid(), "device": DEVICE})
+
+        def do_POST(self):
+            path = self.path.split("?")[0]
+            if path == "/load":
+                try:
+                    get_engine()
+                    return self._send(200, {"ok": True, "loaded": True})
+                except Exception as exc:
+                    return self._send(500, {"ok": False, "error": str(exc)[:200]})
+            if path == "/release":
+                return self._send(200, {"ok": True, "released": release_svc("manual")})
+            return self._send(404, {"error": "not found"})
+
+    def _run():
+        try:
+            srv = ThreadingHTTPServer(("127.0.0.1", CTRL_PORT), H)
+            srv.serve_forever()
+        except Exception as exc:
+            print(f"[gateway] ctrl server failed: {exc}", flush=True)
+
+    _th.Thread(target=_run, daemon=True).start()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default=settings.get("gateway.host", "127.0.0.1"))
@@ -289,6 +405,20 @@ def main():
     demo = build_ui()
     demo.queue(max_size=16, default_concurrency_limit=1)
     engine.log(f"QDLS gateway on http://{args.host}:{args.port}  voices={_profile_ids()}")
+    # 记录自己的 pid，并把上一次残留的任务状态清成 idle
+    try:
+        wd = engine.WORK_DIR
+        os.makedirs(wd, exist_ok=True)
+        with open(os.path.join(wd, "gateway.pid"), "w", encoding="utf-8") as f:
+            f.write(str(os.getpid()))
+        with open(os.path.join(wd, "job_state.json"), "w", encoding="utf-8") as f:
+            json.dump({"job": "", "stage": "idle", "started": 0,
+                       "updated": time.time(), "pid": os.getpid()}, f)
+    except Exception:
+        pass
+
+    _ctrl_server()
+    threading.Thread(target=idle_watch, daemon=True).start()
     demo.launch(server_name=args.host, server_port=args.port, inbrowser=False, show_error=True)
 
 

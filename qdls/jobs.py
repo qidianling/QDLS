@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import shutil
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -81,8 +82,28 @@ def _worker() -> None:
             job["finished"] = _now()
 
 
+def _free_vram_mb() -> int:
+    try:
+        out = subprocess.run(
+            [r"C:\Windows\System32\nvidia-smi.exe", "--query-gpu=memory.free",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=10,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        return int(out.strip().splitlines()[0])
+    except Exception:
+        return 0
+
+
 def _run(job: dict) -> None:
     from gradio_client import Client
+
+    # TTS 用得比 SVC 频繁：显存够就让它们共存，不够才收掉 TTS
+    try:
+        import tts as _tts
+        if _tts.running() and _free_vram_mb() < 5200:
+            _tts.release()
+    except Exception:
+        pass
 
     job["state"] = "running"
     job["started"] = _now()
