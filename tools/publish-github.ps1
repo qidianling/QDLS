@@ -1,64 +1,74 @@
-﻿# Publish the QDLS repository to GitHub.
+﻿# Publish the current QDLS repo in ONE pass (low API usage).
 #
-#   powershell -ExecutionPolicy Bypass -File tools\publish-github.ps1 -User <github-user> -Token <PAT>
+#   powershell -ExecutionPolicy Bypass -File tools\publish-github.ps1 -Token ghp_xxx
 #
-# -Token needs a classic PAT with "repo" scope (or fine-grained: Contents r/w + Administration r/w).
-# Nothing is stored on disk: the token is only used for this run.
+# Does exactly: git push -> tag push -> create release -> upload zip.
+# Nothing is stored on disk; the remote URL is scrubbed afterwards.
 
 param(
-  [Parameter(Mandatory = $true)][string]$User,
   [Parameter(Mandatory = $true)][string]$Token,
+  [string]$User = "qidianling",
   [string]$Repo = "QDLS",
-  [string]$Description = "Local zero-shot singing voice conversion workbench (non-commercial)",
-  [switch]$Private
+  [string]$Tag  = "v1.1.0",
+  [string]$Zip  = "",
+  [string]$Notes = ""
 )
 
 $ErrorActionPreference = "Stop"
-$repo = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$git = Join-Path (Split-Path -Parent $repo) "tools\git\cmd\git.exe"
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$repo = Join-Path $root "repo"
+$git = "C:\DS\tools\git\cmd\git.exe"
 if (-not (Test-Path $git)) { $git = "git" }
+if (-not $Zip) { $Zip = Join-Path $root "release\QDLS.zip" }
+if (-not $Notes) { $Notes = Join-Path $root "release\QDLS\RELEASE.md" }
 
-# schannel on some machines cannot talk to github; openssl backend can
 function GitRun { & $git -c http.sslBackend=openssl -C $repo @args }
 
-Write-Host "== 1/3 检查仓库 =="
-if (-not (Test-Path (Join-Path $repo ".git"))) {
-  GitRun init -b main | Out-Null
-  GitRun config user.name "QDLS"
-  GitRun config user.email "qdls@local"
-}
-GitRun add -A
-$status = GitRun status --porcelain
-if ($status) { GitRun commit -m "QDLS: update" | Out-Null }
-Write-Host "   commit: $(GitRun log --oneline -1)"
-
-Write-Host "== 2/3 创建 GitHub 仓库 =="
-$body = @{ name = $Repo; description = $Description; private = [bool]$Private; auto_init = $false } | ConvertTo-Json
-$headers = @{ Authorization = "token $Token"; "User-Agent" = "QDLS-publish"; Accept = "application/vnd.github+json" }
-try {
-  $r = Invoke-RestMethod -Method Post "https://api.github.com/user/repos" -Headers $headers -Body $body -ContentType "application/json" -TimeoutSec 40
-  Write-Host "   已创建: $($r.html_url)" -ForegroundColor Green
-} catch {
-  $msg = $_.Exception.Message
-  if ($msg -match "already exists|Name already exists") {
-    Write-Host "   仓库已存在，直接推送" -ForegroundColor Yellow
-  } else {
-    Write-Host "   创建失败：$msg" -ForegroundColor Red
-    exit 1
-  }
-}
-
-Write-Host "== 3/3 推送 =="
-$remote = "https://$User`:$Token@github.com/$User/$Repo.git"
-GitRun remote remove origin 2>$null | Out-Null
-GitRun remote add origin $remote
-GitRun push -u origin main --force
-if ($LASTEXITCODE -ne 0) { Write-Host "推送失败" -ForegroundColor Red; exit 1 }
-# strip the token from .git/config
+Write-Host "== 1/4 push main =="
+GitRun remote set-url origin "https://$User`:$Token@github.com/$User/$Repo.git"
+GitRun push origin main
+if ($LASTEXITCODE -ne 0) { throw "push failed" }
 GitRun remote set-url origin "https://github.com/$User/$Repo.git"
 
+Write-Host "== 2/4 tag $Tag =="
+GitRun tag -f -a $Tag -m "QDLS $Tag"
+GitRun remote set-url origin "https://$User`:$Token@github.com/$User/$Repo.git"
+GitRun push -f origin $Tag
+GitRun remote set-url origin "https://github.com/$User/$Repo.git"
+
+Write-Host "== 3/4 release =="
+$headers = @{
+  Authorization = "token $Token"
+  "User-Agent"  = "QDLS"
+  Accept        = "application/vnd.github+json"
+}
+$body = @{
+  tag_name = $Tag
+  name     = "QDLS $Tag"
+  body     = (Get-Content $Notes -Raw)
+  draft    = $false
+  prerelease = $false
+} | ConvertTo-Json -Depth 4
+try {
+  $rel = Invoke-RestMethod -Method Post "https://api.github.com/repos/$User/$Repo/releases" `
+    -Headers $headers -Body $body -ContentType "application/json"
+  Write-Host "   release: $($rel.html_url)"
+} catch {
+  if ("$($_.Exception.Message)" -match "already_exists") {
+    $rel = Invoke-RestMethod -Headers $headers "https://api.github.com/repos/$User/$Repo/releases/tags/$Tag"
+    Write-Host "   release exists, reusing"
+  } else { throw }
+}
+
+Write-Host "== 4/4 asset =="
+$bytes = [System.IO.File]::ReadAllBytes($Zip)
+$up = "https://uploads.github.com/repos/$User/$Repo/releases/$($rel.id)/assets?name=QDLS.zip"
+try {
+  $asset = Invoke-RestMethod -Method Post $up -Headers $headers -Body $bytes -ContentType "application/zip"
+  Write-Host "   asset: $($asset.name) $($asset.size) bytes"
+} catch {
+  Write-Host "   asset upload skipped: $($_.Exception.Message)"
+}
+
 Write-Host ""
-Write-Host "完成：https://github.com/$User/$Repo" -ForegroundColor Green
-Write-Host "接下来在网页上："
-Write-Host "  - Releases → Draft a new release → tag v1.0.0"
-Write-Host "  - 正文粘贴 RELEASE.md，附件上传 release/QDLS.zip"
+Write-Host "done: https://github.com/$User/$Repo/releases/tag/$Tag" -ForegroundColor Green
